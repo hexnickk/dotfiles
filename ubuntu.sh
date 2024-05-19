@@ -85,10 +85,14 @@ bootstrap_fzf() {
     configure_fzf
 }
 
-sudo apt update
+main() {
+    sudo apt update
 
-setup_local_bin
+    setup_local_bin
 
-bootstrap_httpie
-bootstrap_zellij
-bootstrap_fzf
+    bootstrap_httpie
+    bootstrap_zellij
+    bootstrap_fzf
+}
+
+main 2>&1 | tee ~/log.txt
