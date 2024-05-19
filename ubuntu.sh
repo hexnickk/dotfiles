@@ -96,4 +96,4 @@ main() {
     bootstrap_fzf
 }
 
-main
+main 2>&1 | tee ~/.dotenv-logs.txt
