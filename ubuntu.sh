@@ -13,7 +13,7 @@ install_httpie() {
         echo "httpie already installed"
         return
     fi
-    sudo apt install httpie
+    sudo apt install -y httpie
 }
 
 install_zellij() {
@@ -21,7 +21,6 @@ install_zellij() {
         echo "zellij already installed"
         return
     fi
-    echo here
 
     # Determine the system architecture and OS
     VERSION=v0.40.1
