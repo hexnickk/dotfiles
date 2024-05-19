@@ -22,10 +22,10 @@ install_zellij() {
     BASE_URL="https://github.com/zellij-org/zellij/releases/download/$VERSION"
     FILENAME="zellij-$ARCH-unknown-linux-musl.tar.gz"
     URL="$BASE_URL/$FILENAME"
+    echo "\tURL=$URL"
 
     mkdir -p /tmp/zellij
     (cd /tmp/zellij && 
-        echo "Downloading $URL ..." &&
         http --follow --download --ignore-stdin "$URL" &&
         tar -xvf "$FILENAME" &&
         mv zellij ~/.local/bin
@@ -43,7 +43,9 @@ bootstrap_zellij() {
         echo "zellij already installed"
         return
     fi
+    echo "Installing zellij..."
     install_zellij
+    echo "Configuring zellij..."
     configure_zellij
 }
 
@@ -94,7 +96,7 @@ main() {
 
     bootstrap_httpie
     bootstrap_zellij
-    bootstrap_fzf
+    # bootstrap_fzf
 }
 
 main 2>&1 | tee ~/log.txt
