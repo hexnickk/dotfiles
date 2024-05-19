@@ -19,7 +19,7 @@ bootstrap_httpie() {
 
 install_zellij() {
     VERSION=v0.40.1
-    BASE_URL="https://github.com/zellij-org/zellij/releases/download/$VERSION/"
+    BASE_URL="https://github.com/zellij-org/zellij/releases/download/$VERSION"
     FILENAME="zellij-$ARCH-unknown-linux-musl.tar.gz"
     URL="$BASE_URL/$FILENAME"
 
