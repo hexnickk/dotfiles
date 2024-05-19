@@ -3,9 +3,20 @@
 ARCH=$(uname -m)
 OS=$(uname -s)
 
+append_if_not_exists() {
+    local string="$1"
+    local file="$2"
+
+    # Check if the string is not present in the file
+    if ! grep -Fxq "$string" "$file"; then
+        echo "$string" >> "$file"
+        echo "" >> "$file"
+    fi
+}
+
 setup_local_bin() {
     mkdir -p ~/.local/bin
-    echo 'export PATH=$PATH:~/.local/bin' >> ~/.zshrc
+    append_if_not_exists 'export PATH=$PATH:~/.local/bin' ~/.zshrc
 }
 
 bootstrap_httpie() {
@@ -34,7 +45,7 @@ install_zellij() {
 configure_zellij() {
     mkdir -p ~/.config/zellij
     zellij setup --dump-config > ~/.config/zellij/config.kdl
-    sed -i -e 's/\/\/ default_layout "compact"/default_layout "compact"/g' ~/.config/zellij/config.kdl
+    sed -ie 's/\/\/ default_layout "compact"/default_layout "compact"/g' ~/.config/zellij/config.kdl
 }
 
 bootstrap_zellij() {
