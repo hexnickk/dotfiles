@@ -3,8 +3,6 @@
 ARCH=$(uname -m)
 OS=$(uname -s)
 
-echo $SHELL
-
 setup_local_bin() {
     mkdir -p ~/.local/bin
     echo 'export PATH=$PATH:~/.local/bin' >> ~/.zshrc
@@ -24,13 +22,12 @@ install_zellij() {
     BASE_URL="https://github.com/zellij-org/zellij/releases/download/$VERSION"
     FILENAME="zellij-$ARCH-unknown-linux-musl.tar.gz"
     URL="$BASE_URL/$FILENAME"
-    echo "zellij url: $URL"
 
     mkdir -p /tmp/zellij
     (cd /tmp/zellij && 
-        http --follow --download --ignore-stdin "$URL"
-        # tar -xvf "$FILENAME" &&
-        # mv zellij ~/.local/bin
+        http --download "$URL" -o "$FILENAME"
+        tar -xvf "$FILENAME" &&
+        mv zellij ~/.local/bin
     )
 }
 
@@ -45,9 +42,7 @@ bootstrap_zellij() {
         echo "zellij already installed"
         return
     fi
-    echo "Installing zellij..."
     install_zellij
-    echo "Configuring zellij..."
     configure_zellij
 }
 
@@ -69,7 +64,7 @@ install_fzf() {
     mkdir -p /tmp/fzf
     (cd /tmp/fzf && 
         echo "Downloading $URL ..." &&
-        http --follow --download --ignore-stdin "$URL" &&
+        http --download "$URL" -o "$FILENAME" &&
         tar -xvf "$FILENAME" &&
         mv fzf ~/.local/bin
     )
@@ -98,7 +93,7 @@ main() {
 
     bootstrap_httpie
     bootstrap_zellij
-    # bootstrap_fzf
+    bootstrap_fzf
 }
 
-main 2>&1 | tee ~/log.txt
+main
