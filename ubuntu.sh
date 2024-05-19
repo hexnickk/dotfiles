@@ -3,6 +3,8 @@
 ARCH=$(uname -m)
 OS=$(uname -s)
 
+echo $SHELL
+
 setup_local_bin() {
     mkdir -p ~/.local/bin
     echo 'export PATH=$PATH:~/.local/bin' >> ~/.zshrc
@@ -22,13 +24,13 @@ install_zellij() {
     BASE_URL="https://github.com/zellij-org/zellij/releases/download/$VERSION"
     FILENAME="zellij-$ARCH-unknown-linux-musl.tar.gz"
     URL="$BASE_URL/$FILENAME"
-    echo "\tURL=$URL"
+    echo "zellij url: $URL"
 
     mkdir -p /tmp/zellij
     (cd /tmp/zellij && 
-        http --follow --download --ignore-stdin "$URL" &&
-        tar -xvf "$FILENAME" &&
-        mv zellij ~/.local/bin
+        http --follow --download --ignore-stdin "$URL"
+        # tar -xvf "$FILENAME" &&
+        # mv zellij ~/.local/bin
     )
 }
 
