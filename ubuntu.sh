@@ -25,6 +25,7 @@ install_zellij() {
 
     mkdir -p /tmp/zellij
     (cd /tmp/zellij && 
+        echo "Downloading $URL ..." &&
         http --follow --download "$URL" &&
         tar -xvf "$FILENAME" &&
         mv zellij ~/.local/bin
@@ -63,6 +64,7 @@ install_fzf() {
 
     mkdir -p /tmp/fzf
     (cd /tmp/fzf && 
+        echo "Downloading $URL ..." &&
         http --follow --download "$URL" &&
         tar -xvf "$FILENAME" &&
         mv fzf ~/.local/bin
