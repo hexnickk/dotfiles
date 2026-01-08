@@ -1,6 +1,6 @@
 ---
 name: frontend-designer
-description: Apply when creating React frontend UI: pages, dashboards, forms, components, layouts, landing pages, modals. Enforces neobrutalist design — hard shadows, 2px borders, warm cream/yellow palette, no dark mode. Tech: React, Tailwind, shadcn (customized).
+description: Apply when creating React frontend UI: pages, dashboards, forms, components, layouts, landing pages, modals. Enforces utilitarian design — hard shadows, 2px borders, warm cream/yellow palette, no dark mode. Tech: React, Tailwind, shadcn (customized).
 ---
 
 Create frontends that feel like dev tools — functional, honest, unapologetically direct. The goal is interfaces that happen to look technical because they prioritize function, not interfaces that look technical for style points.
