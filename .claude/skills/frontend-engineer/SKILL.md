@@ -1,5 +1,5 @@
 ---
-name: nick-frontend-engineering
+name: frontend-engineer
 description: Apply when writing React/TypeScript frontend code. Enforces component architecture patterns, type safety, and reusability standards.
 ---
 

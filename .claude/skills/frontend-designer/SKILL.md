@@ -1,5 +1,5 @@
 ---
-name: frontend-design
+name: frontend-designer
 description: Apply when creating React frontend UI: pages, dashboards, forms, components, layouts, landing pages, modals. Enforces neobrutalist design — hard shadows, 2px borders, warm cream/yellow palette, no dark mode. Tech: React, Tailwind, shadcn (customized).
 ---
 
