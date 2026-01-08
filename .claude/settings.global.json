@@ -1,6 +1,13 @@
 {
   "permissions": {
     "allow": [
+      "Read(*)",
+      "Edit(*)",
+      "Write(*)",
+      "Glob(*)",
+      "Grep(*)",
+      "WebSearch",
+      "WebFetch",
       "Skill(interview)",
       "Bash(find:*)",
       "Bash(cat:*)",
@@ -16,8 +23,11 @@
       "mcp__chrome-devtools__list_pages",
       "mcp__chrome-devtools__new_page",
       "mcp__chrome-devtools__take_screenshot",
-      "WebSearch",
-      "WebFetch"
+      "mcp__chrome-devtools__take_snapshot",
+      "mcp__chrome-devtools__click",
+      "mcp__chrome-devtools__select_page",
+      "mcp__chrome-devtools__wait_for",
+      "mcp__chrome-devtools__navigate_page"
     ]
   }
 }
