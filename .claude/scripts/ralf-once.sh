@@ -1,6 +1,6 @@
 #!/bin/bash
 
-claude --permission-mode acceptEdits "@SPEC.md @progress.txt \\
+claude --permission-mode acceptEdits "/frontend-designer /frontend-engineer @SPEC.md @progress.txt \\
 1. Read the SPEC and progress file. \\
 2. Find the next incomplete task and implement it. \\
 3. Commit your changes. \\
