@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(interview)",
+      "Bash(find:*)",
+      "Bash(cat:*)",
+      "Bash(ls:*)",
+      "Bash(grep:*)",
+      "Bash(wc:*)",
+      "Bash(claude mcp --help:*)",
+      "Bash(pkill:*)",
+      "Bash(curl:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run typecheck:*)",
+      "Bash(npm run fmt:*)",
+      "mcp__chrome-devtools__list_pages",
+      "mcp__chrome-devtools__new_page",
+      "mcp__chrome-devtools__take_screenshot",
+      "WebSearch",
+      "WebFetch"
+    ]
+  }
+}
