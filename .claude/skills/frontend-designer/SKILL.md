@@ -57,6 +57,7 @@ Whitespace where navigational. Tight spacing where functional. The system doesn'
 **Radius**: `rounded-none` — zero corner radius on everything, no exceptions
 
 **Hover stripe**:
+
 ```
 relative before:absolute before:inset-y-0 before:left-0 before:w-0 before:bg-current before:opacity-0 hover:before:w-1 hover:before:opacity-100
 ```
