@@ -2,11 +2,9 @@
 set -e
 
 # Parse named flags
-while getopts "n:b:s:f:" opt; do
+while getopts "n:f:" opt; do
   case $opt in
     n) ITERATIONS="$OPTARG" ;;
-    b) BRANCH="$OPTARG" ;;
-    s) SKILLS="$OPTARG" ;;
     f) SPEC_FILE="$OPTARG" ;;
     \?) echo "Invalid option: -$OPTARG" >&2; exit 1 ;;
   esac
@@ -14,7 +12,6 @@ done
 
 # Defaults
 ITERATIONS="${ITERATIONS:-20}"
-SKILLS="${SKILLS:-}"
 SPEC_FILE="${SPEC_FILE:-SPEC.md}"
 
 # Validate dependencies
@@ -37,28 +34,14 @@ fi
 
 [[ -f progress.txt ]] || touch progress.txt
 
-# Store base branch before any branch operations
-BASE_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-
-# Generate semantic branch name if not provided
-if [[ -z "$BRANCH" ]]; then
-  echo "Generating semantic branch name from SPEC..."
-  SLUG=$(claude -p "Analyze this SPEC and output ONLY a short branch name slug (2-4 words, lowercase, hyphenated).
-Example outputs: \"user-auth-flow\", \"dashboard-redesign\", \"api-rate-limiting\"
-
-@$SPEC_FILE" | tr -d '\n' | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
-  BRANCH="ralf/$SLUG"
-  echo "Using branch: $BRANCH"
-fi
-
-# Create or checkout branch
-git checkout -b "$BRANCH" 2>/dev/null || git checkout "$BRANCH"
+# Get current branch name
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
 # Iteration loop
 for ((i=1; i<=ITERATIONS; i++)); do
   echo "=== Iteration $i ==="
 
-  result=$(claude --permission-mode acceptEdits -p "$SKILLS @$SPEC_FILE @progress.txt
+  result=$(claude --permission-mode acceptEdits -p "@$SPEC_FILE @progress.txt
 1. Find the highest-priority task and implement it.
 2. Run your tests and type checks.
 3. Update the SPEC with what was done.
@@ -79,9 +62,12 @@ done
 echo "Pushing branch..."
 git push -u origin "$BRANCH"
 
+# Detect default branch for diff/PR base
+DEFAULT_BRANCH=$(git remote show origin | grep 'HEAD branch' | cut -d: -f2 | tr -d ' ')
+
 # Generate PR title and description
 echo "Generating PR description..."
-DIFF=$(git diff "$BASE_BRANCH"...HEAD --stat)
+DIFF=$(git diff "$DEFAULT_BRANCH"...HEAD --stat)
 
 # Check if PR exists
 EXISTING_PR=""
@@ -125,7 +111,7 @@ if [ -n "$EXISTING_PR" ]; then
   gh pr edit --title "$PR_TITLE" --body "$PR_BODY"
 else
   echo "Creating new PR..."
-  gh pr create --title "$PR_TITLE" --body "$PR_BODY" --base "$BASE_BRANCH"
+  gh pr create --title "$PR_TITLE" --body "$PR_BODY" --base "$DEFAULT_BRANCH"
 fi
 
 echo "Done!"

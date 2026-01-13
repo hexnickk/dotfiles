@@ -2,7 +2,7 @@
   "permissions": {
     "allow": [
       "Read(*)",
-      "Edit(*)",
+      "Update(*)",
       "Write(*)",
       "Glob(*)",
       "Grep(*)",
@@ -11,6 +11,7 @@
       "Skill(frontend-designer)",
       "Skill(frontend-engineer)",
       "Skill(marketer)",
+      "Skill(skill-creator)",
       "Bash(find:*)",
       "Bash(cat:*)",
       "Bash(ls:*)",
@@ -23,6 +24,8 @@
       "Bash(npm run build:*)",
       "Bash(npm run typecheck:*)",
       "Bash(npm run fmt:*)",
+      "Bash(chmod:*)",
+      "Bash(claude mcp list:*)",
       "mcp__chrome-devtools__list_pages",
       "mcp__chrome-devtools__new_page",
       "mcp__chrome-devtools__take_screenshot",
@@ -30,7 +33,9 @@
       "mcp__chrome-devtools__click",
       "mcp__chrome-devtools__select_page",
       "mcp__chrome-devtools__wait_for",
-      "mcp__chrome-devtools__navigate_page"
+      "mcp__chrome-devtools__navigate_page",
+      "mcp__chrome-devtools__close_page",
+      "mcp__chrome-devtools__evaluate_script"
     ]
   }
 }
