@@ -1,5 +1,5 @@
 ---
-name: marketer
+name: seo-landing
 description: Create landing page specifications with designer-ready wireframes and conversion-focused copywriting. Use when users mention "landing page", ask for help with marketing copy, want to improve an existing page, or explicitly invoke /marketer. Supports both new page creation and analysis/improvement of existing pages.
 ---
 
