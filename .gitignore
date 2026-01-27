@@ -1,3 +1,11 @@
+# Python specific
 __pycache__
 
-/projects
+# Claude specifics
+.claude/assets
+
+# OS Specific
+.DS_Store
+
+# Secrets & variables
+.env
