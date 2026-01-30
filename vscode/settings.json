@@ -1,0 +1,74 @@
+{
+    "git.confirmSync": false,
+    "git.autofetch": false,
+    "git.enableSmartCommit": true,
+    // "git.enableCommitSigning": true,
+    "git.blame.editorDecoration.enabled": false,
+    "editor.minimap.enabled": false,
+    "editor.fontFamily": "Jetbrains Mono, Menlo, Monaco, 'Courier New', monospace",
+    "editor.fontSize": 14,
+    "editor.tabSize": 2,
+    "editor.fontLigatures": true,
+    "editor.unicodeHighlight.includeStrings": false,
+    "editor.wordWrap": "on",
+    "editor.stickyScroll.enabled": false,
+    "editor.inlayHints.enabled": "off",
+    "editor.lineNumbers": "relative",
+    "editor.codeLens": false,
+    "extensions.ignoreRecommendations": true,
+    "window.commandCenter": false,
+    "window.density.editorTabHeight": "compact",
+    "terminal.integrated.macOptionIsMeta": true,
+    "files.trimTrailingWhitespace": true,
+    "files.trimFinalNewlines": true,
+    "files.insertFinalNewline": true,
+    "explorer.confirmDragAndDrop": false,
+    "explorer.confirmDelete": false,
+    "explorer.compactFolders": false,
+    "explorer.confirmPasteNative": false,
+    "workbench.activityBar.location": "top",
+    "workbench.editorAssociations": {
+        "*.copilotmd": "vscode.markdown.preview.editor",
+        "*.pdf": "default"
+    },
+    "workbench.tips.enabled": false,
+    "workbench.colorTheme": "GitHub Dark Default",
+    // Languages
+    "html.validate.styles": false,
+    "html.validate.scripts": false,
+    "typescript.updateImportsOnFileMove.enabled": "always",
+    "javascript.updateImportsOnFileMove.enabled": "always",
+    "javascript.preferences.importModuleSpecifierEnding": "js",
+    // Other
+    "chat.editing.confirmEditRequestRetry": false,
+    "diffEditor.diffAlgorithm": "advanced",
+    "diffEditor.experimental.showMoves": true,
+    // "diffEditor.renderSideBySide": false,
+    "remote.autoForwardPortsSource": "hybrid",
+    "github.copilot.nextEditSuggestions.enabled": true,
+    "github.copilot.chat.commitMessageGeneration.instructions": [
+        {
+            "text": "Use conventional commit message format."
+        }
+    ],
+    // Vim
+    "vim.normalModeKeyBindingsNonRecursive": [
+        {
+            "before": [
+                "g",
+                "r"
+            ],
+            "commands": [
+                "references-view.findReferences"
+            ]
+        }
+    ],
+    "github.copilot.enable": {
+        "*": true,
+        "plaintext": false,
+        "markdown": false,
+        "scminput": false
+    },
+    "remote.localPortHost": "allInterfaces",
+    "python.analysis.typeCheckingMode": "standard",
+}
