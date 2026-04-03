@@ -23,6 +23,9 @@ export NVM_DIR="$HOME/.nvm"
 # fzf
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
+# autojump
+[ -f /opt/homebrew/etc/profile.d/autojump.sh ] && . /opt/homebrew/etc/profile.d/autojump.sh
+
 # Prompt
 eval "$(starship init zsh)"
 
