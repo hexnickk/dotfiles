@@ -74,4 +74,8 @@
     "workbench.editor.closeEmptyGroups": false,
     "workbench.editor.showTabs": "none",
     "workbench.editor.enablePreview": false,
+    "workbench.editor.limit.enabled": true,
+    "workbench.editor.limit.perEditorGroup": true,
+    "workbench.editor.limit.value": 1,
+    "claudeCode.useTerminal": true,
 }
