@@ -22,7 +22,10 @@ BACKUP_DIRS=(
   "Documents"
   "Projects"
   "Scripts"
-  "Photos"
+  "Pictures"
+  ".ganglia"
+  ".claude"
+  ".config"
 )
 
 # Copy all directories to the destination using rsync
