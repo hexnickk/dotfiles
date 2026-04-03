@@ -32,7 +32,6 @@
         "*.pdf": "default"
     },
     "workbench.tips.enabled": false,
-    "workbench.colorTheme": "GitHub Dark Default",
     // Languages
     "html.validate.styles": false,
     "html.validate.scripts": false,
@@ -71,4 +70,8 @@
     },
     "remote.localPortHost": "allInterfaces",
     "python.analysis.typeCheckingMode": "standard",
+    "claudeCode.preferredLocation": "panel",
+    "workbench.editor.closeEmptyGroups": false,
+    "workbench.editor.showTabs": "none",
+    "workbench.editor.enablePreview": false,
 }
