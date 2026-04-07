@@ -33,6 +33,43 @@
     "command": "workbench.action.navigateUp",
   },
   {
+    "key": "cmd+alt+l",
+    "command": "workbench.action.toggleEditorGroupLock"
+  },
+  // --- Split Resizing ---
+  {
+    "key": "ctrl+alt+h",
+    "command": "workbench.action.decreaseViewWidth"
+  },
+  {
+    "key": "ctrl+alt+l",
+    "command": "workbench.action.increaseViewWidth"
+  },
+  {
+    "key": "ctrl+alt+j",
+    "command": "workbench.action.decreaseViewHeight"
+  },
+  {
+    "key": "ctrl+alt+k",
+    "command": "workbench.action.increaseViewHeight"
+  },
+  {
+    "key": "ctrl+alt+left",
+    "command": "workbench.action.decreaseViewWidth"
+  },
+  {
+    "key": "ctrl+alt+right",
+    "command": "workbench.action.increaseViewWidth"
+  },
+  {
+    "key": "ctrl+alt+down",
+    "command": "workbench.action.decreaseViewHeight"
+  },
+  {
+    "key": "ctrl+alt+up",
+    "command": "workbench.action.increaseViewHeight"
+  },
+  {
     "key": "ctrl+o",
     "command": "workbench.action.navigateBack"
   },
@@ -68,8 +105,11 @@
   },
   {
     "key": "cmd+shift+d",
-    "command": "workbench.action.splitEditorOrthogonal",
-    "when": "editorTextFocus"
+    "command": "workbench.action.splitEditorOrthogonal"
+  },
+  {
+    "key": "cmd+shift+d",
+    "command": "-workbench.view.debug"
   },
   // --- General & Quick Open ---
   {
