@@ -1,0 +1,5 @@
+keybind = shift+enter=text:\n
+keybind = ctrl+alt+arrow_left=resize_split:left,10
+keybind = ctrl+alt+arrow_right=resize_split:right,10
+keybind = ctrl+alt+arrow_up=resize_split:up,10
+keybind = ctrl+alt+arrow_down=resize_split:down,10
