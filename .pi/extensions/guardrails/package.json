@@ -1,0 +1,16 @@
+{
+  "name": "guardrails-extension",
+  "private": true,
+  "type": "module",
+  "pi": {
+    "extensions": ["./index.ts"]
+  },
+  "scripts": {
+    "check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@mariozechner/pi-coding-agent": "^0.66.1",
+    "@types/node": "^22",
+    "typescript": "^6"
+  }
+}
