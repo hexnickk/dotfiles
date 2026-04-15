@@ -6,11 +6,10 @@ import {
   GuardBashCommandNotAllowedError,
   GuardBashCommandOptionNotAllowedError,
   GuardBashSyntaxNotAllowedError,
-  guardBashEvaluateCommand,
-  guardBashFormatParsedStages,
-  guardBashParseSafeCommandLine,
-} from "./index.ts";
-import type { GuardBashParsedStage } from "./index.ts";
+} from "./errors.ts";
+import { guardBashValidateCommand } from "./index.ts";
+import { guardBashParseSafeCommandLine } from "./parse.ts";
+import type { GuardBashParsedStage } from "./types.ts";
 
 // Asserts that parsing succeeded and returns the parsed stages.
 function assertParsed(result: GuardBashApprovalRequiredError | GuardBashParsedStage[]): GuardBashParsedStage[] {
@@ -37,83 +36,70 @@ test("guardBashParseSafeCommandLine preserves empty quoted arguments", () => {
   assert.deepEqual(parsed, [{ command: "grep", args: ["", "file.txt"] }]);
 });
 
-test("guardBashEvaluateCommand auto-allows readonly pipelines", () => {
-  const decision = guardBashEvaluateCommand("ls -la | sort");
+test("guardBashValidateCommand auto-allows readonly pipelines", () => {
+  const validationError = guardBashValidateCommand("ls -la | sort");
 
-  assert.ok(!(decision instanceof GuardBashApprovalRequiredError));
-  if (decision instanceof GuardBashApprovalRequiredError) return;
-  assert.deepEqual(decision.stages, [
-    { command: "ls", args: ["-la"] },
-    { command: "sort", args: [] },
-  ]);
+  assert.equal(validationError, undefined);
 });
 
-test("guardBashEvaluateCommand auto-allows safe find usage", () => {
-  const decision = guardBashEvaluateCommand("find src -type f -name '*.ts' | sort");
+test("guardBashValidateCommand auto-allows safe find usage", () => {
+  const validationError = guardBashValidateCommand("find src -type f -name '*.ts' | sort");
 
-  assert.ok(!(decision instanceof GuardBashApprovalRequiredError));
-  if (decision instanceof GuardBashApprovalRequiredError) return;
-  assert.equal(guardBashFormatParsedStages(decision.stages), "find | sort");
+  assert.equal(validationError, undefined);
 });
 
-test("guardBashEvaluateCommand returns a typed error for unknown commands", () => {
-  const decision = guardBashEvaluateCommand("git status");
+test("guardBashValidateCommand returns a typed error for unknown commands", () => {
+  const validationError = guardBashValidateCommand("git status");
 
-  assert.ok(decision instanceof GuardBashCommandNotAllowedError);
-  if (!(decision instanceof GuardBashCommandNotAllowedError)) return;
-  assert.match(decision.message, /not in the strict auto-allow list/);
-  assert.equal(guardBashFormatParsedStages(decision.stages), "git");
+  assert.ok(validationError instanceof GuardBashCommandNotAllowedError);
+  if (!(validationError instanceof GuardBashCommandNotAllowedError)) return;
+  assert.match(validationError.message, /not in the strict auto-allow list/);
 });
 
-test("guardBashEvaluateCommand returns a typed error for disallowed shell syntax", () => {
-  const decision = guardBashEvaluateCommand("pwd && ls");
+test("guardBashValidateCommand returns a typed error for disallowed shell syntax", () => {
+  const validationError = guardBashValidateCommand("pwd && ls");
 
-  assert.ok(decision instanceof GuardBashSyntaxNotAllowedError);
-  if (!(decision instanceof GuardBashSyntaxNotAllowedError)) return;
-  assert.match(decision.message, /outside the auto-allow subset/);
-  assert.equal(guardBashFormatParsedStages(decision.stages), "Unable to safely parse command");
+  assert.ok(validationError instanceof GuardBashSyntaxNotAllowedError);
+  if (!(validationError instanceof GuardBashSyntaxNotAllowedError)) return;
+  assert.match(validationError.message, /outside the auto-allow subset/);
 });
 
-test("guardBashEvaluateCommand returns a typed error for dangerous find actions", () => {
-  const decision = guardBashEvaluateCommand("find . -delete");
+test("guardBashValidateCommand returns a typed error for dangerous find actions", () => {
+  const validationError = guardBashValidateCommand("find . -delete");
 
-  assert.ok(decision instanceof GuardBashCommandOptionNotAllowedError);
-  if (!(decision instanceof GuardBashCommandOptionNotAllowedError)) return;
-  assert.match(decision.message, /find -delete/);
-  assert.equal(guardBashFormatParsedStages(decision.stages), "find");
+  assert.ok(validationError instanceof GuardBashCommandOptionNotAllowedError);
+  if (!(validationError instanceof GuardBashCommandOptionNotAllowedError)) return;
+  assert.match(validationError.message, /find -delete/);
 });
 
-test("guardBashEvaluateCommand returns a typed error for rg --pre", () => {
-  const decision = guardBashEvaluateCommand("rg TODO src --pre node");
+test("guardBashValidateCommand returns a typed error for rg --pre", () => {
+  const validationError = guardBashValidateCommand("rg TODO src --pre node");
 
-  assert.ok(decision instanceof GuardBashCommandOptionNotAllowedError);
-  if (!(decision instanceof GuardBashCommandOptionNotAllowedError)) return;
-  assert.match(decision.message, /rg --pre/);
-  assert.equal(guardBashFormatParsedStages(decision.stages), "rg");
+  assert.ok(validationError instanceof GuardBashCommandOptionNotAllowedError);
+  if (!(validationError instanceof GuardBashCommandOptionNotAllowedError)) return;
+  assert.match(validationError.message, /rg --pre/);
 });
 
-test("guardBashEvaluateCommand returns a typed error for sort output options", () => {
-  const decision = guardBashEvaluateCommand("sort -o sorted.txt input.txt");
+test("guardBashValidateCommand returns a typed error for sort output options", () => {
+  const validationError = guardBashValidateCommand("sort -o sorted.txt input.txt");
 
-  assert.ok(decision instanceof GuardBashCommandOptionNotAllowedError);
-  if (!(decision instanceof GuardBashCommandOptionNotAllowedError)) return;
-  assert.match(decision.message, /sort -o/);
-  assert.equal(guardBashFormatParsedStages(decision.stages), "sort");
+  assert.ok(validationError instanceof GuardBashCommandOptionNotAllowedError);
+  if (!(validationError instanceof GuardBashCommandOptionNotAllowedError)) return;
+  assert.match(validationError.message, /sort -o/);
 });
 
-test("guardBashEvaluateCommand returns a typed error for sort helper programs", () => {
-  const decision = guardBashEvaluateCommand("sort --compress-program=gzip input.txt");
+test("guardBashValidateCommand returns a typed error for sort helper programs", () => {
+  const validationError = guardBashValidateCommand("sort --compress-program=gzip input.txt");
 
-  assert.ok(decision instanceof GuardBashCommandOptionNotAllowedError);
-  if (!(decision instanceof GuardBashCommandOptionNotAllowedError)) return;
-  assert.match(decision.message, /sort --compress-program/);
-  assert.equal(guardBashFormatParsedStages(decision.stages), "sort");
+  assert.ok(validationError instanceof GuardBashCommandOptionNotAllowedError);
+  if (!(validationError instanceof GuardBashCommandOptionNotAllowedError)) return;
+  assert.match(validationError.message, /sort --compress-program/);
 });
 
-test("guardBashEvaluateCommand returns a typed error for newlines inside quotes", () => {
-  const decision = guardBashEvaluateCommand('grep "a\nb" file.txt');
+test("guardBashValidateCommand returns a typed error for newlines inside quotes", () => {
+  const validationError = guardBashValidateCommand('grep "a\nb" file.txt');
 
-  assert.ok(decision instanceof GuardBashSyntaxNotAllowedError);
-  if (!(decision instanceof GuardBashSyntaxNotAllowedError)) return;
-  assert.match(decision.message, /newlines/);
+  assert.ok(validationError instanceof GuardBashSyntaxNotAllowedError);
+  if (!(validationError instanceof GuardBashSyntaxNotAllowedError)) return;
+  assert.match(validationError.message, /newlines/);
 });

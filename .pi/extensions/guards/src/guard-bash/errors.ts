@@ -1,13 +1,8 @@
-import type { GuardBashParsedStage } from "./types.ts";
-
 // Marks commands that are valid to inspect but still require explicit approval.
 export class GuardBashApprovalRequiredError extends Error {
-  stages: GuardBashParsedStage[] | undefined;
-
-  constructor(message: string, stages?: GuardBashParsedStage[]) {
+  constructor(message: string) {
     super(message);
     this.name = new.target.name;
-    this.stages = stages;
     Object.setPrototypeOf(this, new.target.prototype);
   }
 }

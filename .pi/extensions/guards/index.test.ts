@@ -76,7 +76,7 @@ test("guards prompts before unsafe interactive bash commands", async () => {
   const { confirmCalls, result } = await harness.runToolCall("git status", { hasUI: true, confirmResult: false });
 
   assert.equal(confirmCalls.length, 1);
-  assert.match(confirmCalls[0]?.body ?? "", /Parsed pipeline: git/);
+  assert.equal(confirmCalls[0]?.body, "git status");
   assert.deepEqual(result, { block: true, reason: "Blocked by user" });
 });
 

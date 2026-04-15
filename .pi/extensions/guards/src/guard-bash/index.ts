@@ -1,27 +1,11 @@
 import { GuardBashApprovalRequiredError, GuardBashCommandNotAllowedError } from "./errors.ts";
 import { guardBashParseSafeCommandLine } from "./parse.ts";
 import { guardBashGetCommandValidator } from "./validate.ts";
-import type { GuardBashAllowedCommand, GuardBashParsedStage } from "./types.ts";
 
-export {
-  GuardBashApprovalRequiredError,
-  GuardBashCommandNotAllowedError,
-  GuardBashCommandOptionNotAllowedError,
-  GuardBashCommandOptionValueMissingError,
-  GuardBashCommandPathNotAllowedError,
-  GuardBashEmptyCommandError,
-  GuardBashEnvironmentAssignmentNotAllowedError,
-  GuardBashFindTokenNotAllowedError,
-  GuardBashInvalidPipelineError,
-  GuardBashSyntaxNotAllowedError,
-  GuardBashUnterminatedQuoteError,
-} from "./errors.ts";
-export type { GuardBashAllowedCommand, GuardBashParsedStage, GuardBashShellToken } from "./types.ts";
-export { guardBashParseSafeCommandLine } from "./parse.ts";
-
-// Decides whether a bash command can run without extra user confirmation.
-export function guardBashEvaluateCommand(commandLine: string): GuardBashAllowedCommand | GuardBashApprovalRequiredError {
-  const parsed = guardBashParseSafeCommandLine(commandLine);
+// Validates whether a bash command can run without extra user confirmation.
+// Returns a typed error when the command falls outside the auto-allow subset.
+export function guardBashValidateCommand(command: string): GuardBashApprovalRequiredError | undefined {
+  const parsed = guardBashParseSafeCommandLine(command);
   if (parsed instanceof GuardBashApprovalRequiredError) {
     return parsed;
   }
@@ -31,25 +15,15 @@ export function guardBashEvaluateCommand(commandLine: string): GuardBashAllowedC
     if (validator === undefined) {
       return new GuardBashCommandNotAllowedError(
         `Command ${stage.command} is not in the strict auto-allow list`,
-        parsed,
       );
     }
 
-    const error = validator(stage);
-    if (error !== undefined) {
-      error.stages ??= parsed;
-      return error;
+    const validationError = validator(stage);
+    if (validationError !== undefined) {
+      return validationError;
     }
   }
 
-  return { stages: parsed };
+  return undefined;
 }
 
-// Formats parsed stages for UI messages shown during approval prompts.
-export function guardBashFormatParsedStages(stages: GuardBashParsedStage[] | undefined): string {
-  if (stages === undefined || stages.length === 0) {
-    return "Unable to safely parse command";
-  }
-
-  return stages.map((stage) => stage.command).join(" | ");
-}
