@@ -33,6 +33,18 @@ test("guardBashTokenizeSafeShell keeps escaped and quoted pipe characters inside
   ]);
 });
 
+test("guardBashTokenizeSafeShell keeps ~ inside words but rejects leading ~ expansion", () => {
+  const revisionTokens = assertTokenized(guardBashTokenizeSafeShell("git diff HEAD~1"));
+  const expansionResult = guardBashTokenizeSafeShell("cat ~/.gitconfig");
+
+  assert.deepEqual(revisionTokens, [
+    { type: "word", value: "git" },
+    { type: "word", value: "diff" },
+    { type: "word", value: "HEAD~1" },
+  ]);
+  assert.ok(expansionResult instanceof GuardBashSyntaxNotAllowedError);
+});
+
 test("guardBashTokenizeSafeShell treats # as a comment only at the start of a token", () => {
   const commentTokens = assertTokenized(guardBashTokenizeSafeShell("pwd # explain command"));
   const hashWordTokens = assertTokenized(guardBashTokenizeSafeShell("rg foo#bar file.txt"));

@@ -16,4 +16,5 @@ export class GuardBashCommandPathNotAllowedError extends GuardBashApprovalRequir
 export class GuardBashCommandNotAllowedError extends GuardBashApprovalRequiredError {}
 export class GuardBashCommandOptionNotAllowedError extends GuardBashApprovalRequiredError {}
 export class GuardBashCommandOptionValueMissingError extends GuardBashApprovalRequiredError {}
+export class GuardBashFindExpressionInvalidError extends GuardBashApprovalRequiredError {}
 export class GuardBashFindTokenNotAllowedError extends GuardBashApprovalRequiredError {}

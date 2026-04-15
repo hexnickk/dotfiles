@@ -24,10 +24,17 @@ function validateStatus(args: string[]): GuardBashApprovalRequiredError | undefi
 
 // Validates git diff while blocking file output and external helper execution.
 function validateDiff(args: string[]): GuardBashApprovalRequiredError | undefined {
+  let hasNoTextconv = false;
+
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
     if (arg === undefined) {
       break;
+    }
+
+    if (arg === "--no-textconv") {
+      hasNoTextconv = true;
+      continue;
     }
 
     if (arg === "--output") {
@@ -58,6 +65,12 @@ function validateDiff(args: string[]): GuardBashApprovalRequiredError | undefine
         "git diff --textconv can execute external commands and therefore requires approval",
       );
     }
+  }
+
+  if (!hasNoTextconv) {
+    return new GuardBashCommandOptionNotAllowedError(
+      "git diff needs --no-textconv because textconv filters can execute external commands",
+    );
   }
 
   return undefined;

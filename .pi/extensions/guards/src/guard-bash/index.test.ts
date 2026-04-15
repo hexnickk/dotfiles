@@ -48,6 +48,22 @@ test("guardBashValidateCommand auto-allows safe find usage", () => {
   assert.equal(validationError, undefined);
 });
 
+test("guardBashValidateCommand auto-allows grouped readonly find expressions", () => {
+  const validationError = guardBashValidateCommand(
+    "find . -maxdepth 4 \\( -path '*/guard*' -o -path '*/guards*' \\) | sort",
+  );
+
+  assert.equal(validationError, undefined);
+});
+
+test("guardBashValidateCommand auto-allows readonly find prune patterns", () => {
+  const validationError = guardBashValidateCommand(
+    "find . \\( -path './node_modules' -o -path './.git' \\) -prune -o -name '*.ts' -print",
+  );
+
+  assert.equal(validationError, undefined);
+});
+
 test("guardBashValidateCommand auto-allows git status", () => {
   const validationError = guardBashValidateCommand("git status");
 
@@ -61,7 +77,7 @@ test("guardBashValidateCommand auto-allows git status --short", () => {
 });
 
 test("guardBashValidateCommand auto-allows safe git diff usage", () => {
-  const validationError = guardBashValidateCommand("git diff --cached --stat HEAD -- src");
+  const validationError = guardBashValidateCommand("git diff --no-textconv --cached --stat HEAD~1 -- src");
 
   assert.equal(validationError, undefined);
 });
@@ -85,6 +101,14 @@ test("guardBashValidateCommand returns a typed error for disallowed shell syntax
 
 test("guardBashValidateCommand returns a typed error for dangerous find actions", () => {
   const validationError = guardBashValidateCommand("find . -delete");
+
+  assert.ok(validationError instanceof GuardBashCommandOptionNotAllowedError);
+  if (!(validationError instanceof GuardBashCommandOptionNotAllowedError)) return;
+  assert.match(validationError.message, /find -delete/);
+});
+
+test("guardBashValidateCommand still blocks dangerous find actions inside groups", () => {
+  const validationError = guardBashValidateCommand("find . \\( -path tmp -o -delete \\)");
 
   assert.ok(validationError instanceof GuardBashCommandOptionNotAllowedError);
   if (!(validationError instanceof GuardBashCommandOptionNotAllowedError)) return;
@@ -115,8 +139,16 @@ test("guardBashValidateCommand returns a typed error for git global options", ()
   assert.match(validationError.message, /git global options/);
 });
 
+test("guardBashValidateCommand returns a typed error for git diff without --no-textconv", () => {
+  const validationError = guardBashValidateCommand("git diff --stat HEAD~1");
+
+  assert.ok(validationError instanceof GuardBashCommandOptionNotAllowedError);
+  if (!(validationError instanceof GuardBashCommandOptionNotAllowedError)) return;
+  assert.match(validationError.message, /--no-textconv/);
+});
+
 test("guardBashValidateCommand returns a typed error for git diff external helpers", () => {
-  const validationError = guardBashValidateCommand("git diff --ext-diff");
+  const validationError = guardBashValidateCommand("git diff --no-textconv --ext-diff");
 
   assert.ok(validationError instanceof GuardBashCommandOptionNotAllowedError);
   if (!(validationError instanceof GuardBashCommandOptionNotAllowedError)) return;

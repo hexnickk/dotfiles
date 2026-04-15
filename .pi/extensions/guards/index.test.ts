@@ -96,6 +96,14 @@ test("guards skips prompts for safe git status commands", async () => {
   assert.equal(result, undefined);
 });
 
+test("guards skips prompts for safe git diff commands", async () => {
+  const harness = createTestHarness(false);
+  const { confirmCalls, result } = await harness.runToolCall("git diff --no-textconv --stat HEAD~1", { hasUI: true });
+
+  assert.equal(confirmCalls.length, 0);
+  assert.equal(result, undefined);
+});
+
 test("guards enables yolo mode after session start and notifies interactive users", async () => {
   const harness = createTestHarness(true);
 

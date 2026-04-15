@@ -140,7 +140,11 @@ export function guardBashTokenizeSafeShell(input: string): GuardBashApprovalRequ
       return syntaxError("Grouping and subshell syntax are outside the auto-allow subset");
     }
 
-    if (char === "*" || char === "?" || char === "[" || char === "]" || char === "~" || char === "!") {
+    if (char === "~" && !tokenStarted) {
+      return syntaxError("This command uses shell expansion or syntax outside the auto-allow subset");
+    }
+
+    if (char === "*" || char === "?" || char === "[" || char === "]" || char === "!") {
       return syntaxError("This command uses shell expansion or syntax outside the auto-allow subset");
     }
 
