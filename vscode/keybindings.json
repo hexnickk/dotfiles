@@ -104,8 +104,14 @@
     "when": "editorTextFocus"
   },
   {
+    "key": "cmd+d",
+    "command": "workbench.action.terminal.split",
+    "when": "terminalFocus"
+  },
+  {
     "key": "cmd+shift+d",
-    "command": "workbench.action.splitEditorOrthogonal"
+    "command": "workbench.action.splitEditorOrthogonal",
+    "when": "!terminalFocus"
   },
   {
     "key": "cmd+shift+d",
