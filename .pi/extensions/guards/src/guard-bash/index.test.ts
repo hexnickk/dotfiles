@@ -5,6 +5,7 @@ import {
   GuardBashApprovalRequiredError,
   GuardBashCommandNotAllowedError,
   GuardBashCommandOptionNotAllowedError,
+  GuardBashFindExpressionInvalidError,
   GuardBashSyntaxNotAllowedError,
 } from "./errors.ts";
 import { guardBashValidateCommand } from "./index.ts";
@@ -40,6 +41,14 @@ test("guardBashValidateCommand auto-allows readonly pipelines", () => {
   const validationError = guardBashValidateCommand("ls -la | sort");
 
   assert.equal(validationError, undefined);
+});
+
+test("guardBashValidateCommand auto-allows du and readlink", () => {
+  const duValidationError = guardBashValidateCommand("du -sh .");
+  const readlinkValidationError = guardBashValidateCommand("readlink .git/HEAD");
+
+  assert.equal(duValidationError, undefined);
+  assert.equal(readlinkValidationError, undefined);
 });
 
 test("guardBashValidateCommand auto-allows safe find usage", () => {
@@ -113,6 +122,14 @@ test("guardBashValidateCommand still blocks dangerous find actions inside groups
   assert.ok(validationError instanceof GuardBashCommandOptionNotAllowedError);
   if (!(validationError instanceof GuardBashCommandOptionNotAllowedError)) return;
   assert.match(validationError.message, /find -delete/);
+});
+
+test("guardBashValidateCommand returns a typed error for malformed grouped find expressions", () => {
+  const validationError = guardBashValidateCommand("find . \\( -path tmp -o -name '*.ts'");
+
+  assert.ok(validationError instanceof GuardBashFindExpressionInvalidError);
+  if (!(validationError instanceof GuardBashFindExpressionInvalidError)) return;
+  assert.match(validationError.message, /closing \)/);
 });
 
 test("guardBashValidateCommand returns a typed error for rg --pre", () => {
