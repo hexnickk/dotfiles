@@ -1,5 +1,9 @@
 import { isToolCallEventType, type ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { guardBashEvaluateCommand, guardBashFormatParsedStages } from "./src/guard-bash/index.ts";
+import {
+  GuardBashApprovalRequiredError,
+  guardBashEvaluateCommand,
+  guardBashFormatParsedStages,
+} from "./src/guard-bash/index.ts";
 
 // Registers bash command guards and prompts when a command needs approval.
 export default function guards(pi: ExtensionAPI): void {
@@ -25,12 +29,12 @@ export default function guards(pi: ExtensionAPI): void {
     }
 
     const decision = guardBashEvaluateCommand(event.input.command);
-    if (decision.autoAllow) {
+    if (!(decision instanceof GuardBashApprovalRequiredError)) {
       return;
     }
 
     if (!ctx.hasUI) {
-      return { block: true, reason: decision.reason };
+      return { block: true, reason: decision.message };
     }
 
     const okToRun = await ctx.ui.confirm(
@@ -38,7 +42,7 @@ export default function guards(pi: ExtensionAPI): void {
       [
         `Agent is trying to run: ${event.input.command}`,
         `Parsed pipeline: ${guardBashFormatParsedStages(decision.stages)}`,
-        `Reason: ${decision.reason}`,
+        `Reason: ${decision.message}`,
       ].join("\n\n"),
     );
 

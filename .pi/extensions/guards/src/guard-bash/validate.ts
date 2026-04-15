@@ -1,8 +1,10 @@
-import type {
-  GuardBashParsedStage,
-  GuardBashValidationResult,
-  GuardBashValidator,
-} from "./types.ts";
+import {
+  GuardBashCommandOptionNotAllowedError,
+  GuardBashCommandOptionValueMissingError,
+  GuardBashFindTokenNotAllowedError,
+  type GuardBashApprovalRequiredError,
+} from "./errors.ts";
+import type { GuardBashParsedStage } from "./types.ts";
 
 const SIMPLE_READONLY_COMMANDS = new Set([
   "basename",
@@ -46,34 +48,28 @@ const FIND_DISALLOWED_OPTIONS = new Set([
   "-okdir",
 ]);
 
-// Returns a successful validation result.
-function ok(): GuardBashValidationResult {
-  return { ok: true };
-}
-
-// Returns a rejected validation result with a user-facing reason.
-function fail(reason: string): GuardBashValidationResult {
-  return { ok: false, reason };
-}
+type GuardBashValidator = (stage: GuardBashParsedStage) => GuardBashApprovalRequiredError | undefined;
 
 // Accepts readonly commands whose risk is already handled by the shell parser.
-function validateSimpleReadonlyCommand(_stage: GuardBashParsedStage): GuardBashValidationResult {
-  return ok();
+function validateSimpleReadonlyCommand(): undefined {
+  return undefined;
 }
 
 // Blocks rg features that can spawn external preprocessors.
-function validateRipgrep(stage: GuardBashParsedStage): GuardBashValidationResult {
+function validateRipgrep(stage: GuardBashParsedStage): GuardBashApprovalRequiredError | undefined {
   for (const arg of stage.args) {
     if (arg === "--pre" || arg.startsWith("--pre=")) {
-      return fail("rg --pre can execute external commands and therefore requires approval");
+      return new GuardBashCommandOptionNotAllowedError(
+        "rg --pre can execute external commands and therefore requires approval",
+      );
     }
   }
 
-  return ok();
+  return undefined;
 }
 
 // Blocks fd features that can execute commands for each match.
-function validateFd(stage: GuardBashParsedStage): GuardBashValidationResult {
+function validateFd(stage: GuardBashParsedStage): GuardBashApprovalRequiredError | undefined {
   for (const arg of stage.args) {
     if (
       arg === "-x"
@@ -83,34 +79,42 @@ function validateFd(stage: GuardBashParsedStage): GuardBashValidationResult {
       || arg.startsWith("--exec=")
       || arg.startsWith("--exec-batch=")
     ) {
-      return fail("fd exec options can run external commands and therefore require approval");
+      return new GuardBashCommandOptionNotAllowedError(
+        "fd exec options can run external commands and therefore require approval",
+      );
     }
   }
 
-  return ok();
+  return undefined;
 }
 
 // Blocks sort options that can write files or execute helper programs.
-function validateSort(stage: GuardBashParsedStage): GuardBashValidationResult {
+function validateSort(stage: GuardBashParsedStage): GuardBashApprovalRequiredError | undefined {
   for (const arg of stage.args) {
     if (arg === "-o" || (arg.startsWith("-o") && !arg.startsWith("--"))) {
-      return fail("sort -o can write output files and therefore requires approval");
+      return new GuardBashCommandOptionNotAllowedError(
+        "sort -o can write output files and therefore requires approval",
+      );
     }
 
     if (arg === "--output" || arg.startsWith("--output=")) {
-      return fail("sort --output can write output files and therefore requires approval");
+      return new GuardBashCommandOptionNotAllowedError(
+        "sort --output can write output files and therefore requires approval",
+      );
     }
 
     if (arg === "--compress-program" || arg.startsWith("--compress-program=")) {
-      return fail("sort --compress-program can execute external commands and therefore requires approval");
+      return new GuardBashCommandOptionNotAllowedError(
+        "sort --compress-program can execute external commands and therefore requires approval",
+      );
     }
   }
 
-  return ok();
+  return undefined;
 }
 
 // Validates a tiny readonly subset of find expressions.
-function validateFind(stage: GuardBashParsedStage): GuardBashValidationResult {
+function validateFind(stage: GuardBashParsedStage): GuardBashApprovalRequiredError | undefined {
   let index = 0;
 
   while (index < stage.args.length && FIND_GLOBAL_OPTIONS.has(stage.args[index] ?? "")) {
@@ -132,7 +136,9 @@ function validateFind(stage: GuardBashParsedStage): GuardBashValidationResult {
     }
 
     if (FIND_DISALLOWED_OPTIONS.has(arg)) {
-      return fail(`find ${arg} can mutate state or execute commands and therefore requires approval`);
+      return new GuardBashCommandOptionNotAllowedError(
+        `find ${arg} can mutate state or execute commands and therefore requires approval`,
+      );
     }
 
     if (FIND_OPTIONS_WITHOUT_VALUE.has(arg)) {
@@ -143,16 +149,16 @@ function validateFind(stage: GuardBashParsedStage): GuardBashValidationResult {
     if (FIND_OPTIONS_WITH_VALUE.has(arg)) {
       const value = stage.args[index + 1];
       if (value === undefined) {
-        return fail(`find option ${arg} expects a value`);
+        return new GuardBashCommandOptionValueMissingError(`find option ${arg} expects a value`);
       }
       index += 2;
       continue;
     }
 
-    return fail(`find token ${arg} is outside the safe allowlist`);
+    return new GuardBashFindTokenNotAllowedError(`find token ${arg} is outside the safe allowlist`);
   }
 
-  return ok();
+  return undefined;
 }
 
 const COMMAND_VALIDATORS = new Map<string, GuardBashValidator>([

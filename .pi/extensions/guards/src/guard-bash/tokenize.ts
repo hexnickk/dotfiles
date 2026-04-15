@@ -1,37 +1,43 @@
+import {
+  GuardBashEmptyCommandError,
+  GuardBashInvalidPipelineError,
+  GuardBashSyntaxNotAllowedError,
+  GuardBashUnterminatedQuoteError,
+  type GuardBashApprovalRequiredError,
+} from "./errors.ts";
 import type { GuardBashShellToken } from "./types.ts";
 
-type TokenizeResult =
-  | { ok: true; tokens: GuardBashShellToken[] }
-  | { ok: false; reason: string };
-
-// Returns a rejected tokenize result with a user-facing reason.
-function fail(reason: string): TokenizeResult {
-  return { ok: false, reason };
+// Checks whether a character is a newline in the shell subset parser.
+function isNewline(char: string): boolean {
+  return char === "\n" || char === "\r";
 }
 
-// Appends the current word token when at least one character was seen.
-function pushWord(tokens: GuardBashShellToken[], current: string, tokenStarted: boolean): string {
-  if (tokenStarted) {
-    tokens.push({ type: "word", value: current });
-  }
-
-  return "";
+// Creates a syntax error for shell features outside the strict auto-allow subset.
+function syntaxError(message: string): GuardBashSyntaxNotAllowedError {
+  return new GuardBashSyntaxNotAllowedError(message);
 }
 
 // Tokenizes a tiny shell subset and rejects syntax outside the auto-allow parser.
-export function guardBashTokenizeSafeShell(input: string): TokenizeResult {
+export function guardBashTokenizeSafeShell(input: string): GuardBashApprovalRequiredError | GuardBashShellToken[] {
   const tokens: GuardBashShellToken[] = [];
   let current = "";
   let tokenStarted = false;
   let mode: "normal" | "single" | "double" = "normal";
+
+  const finishWord = () => {
+    if (!tokenStarted) return;
+    tokens.push({ type: "word", value: current });
+    current = "";
+    tokenStarted = false;
+  };
 
   for (let index = 0; index < input.length; index += 1) {
     const char = input[index];
     const next = input[index + 1];
 
     if (mode === "single") {
-      if (char === "\n" || char === "\r") {
-        return fail("Multiple commands and newlines are outside the auto-allow subset");
+      if (isNewline(char)) {
+        return syntaxError("Multiple commands and newlines are outside the auto-allow subset");
       }
 
       if (char === "'") {
@@ -43,8 +49,8 @@ export function guardBashTokenizeSafeShell(input: string): TokenizeResult {
     }
 
     if (mode === "double") {
-      if (char === "\n" || char === "\r") {
-        return fail("Multiple commands and newlines are outside the auto-allow subset");
+      if (isNewline(char)) {
+        return syntaxError("Multiple commands and newlines are outside the auto-allow subset");
       }
 
       if (char === '"') {
@@ -53,16 +59,15 @@ export function guardBashTokenizeSafeShell(input: string): TokenizeResult {
       }
 
       if (char === "$" || char === "`") {
-        return fail("Variable and command expansion are outside the auto-allow subset");
+        return syntaxError("Variable and command expansion are outside the auto-allow subset");
       }
 
       if (char === "\\") {
         if (next === undefined) {
-          return fail("Trailing backslash is outside the auto-allow subset");
+          return syntaxError("Trailing backslash is outside the auto-allow subset");
         }
-        if (next === "\n") {
-          index += 1;
-          continue;
+        if (isNewline(next)) {
+          return syntaxError("Multiple commands and newlines are outside the auto-allow subset");
         }
 
         current += next;
@@ -83,18 +88,16 @@ export function guardBashTokenizeSafeShell(input: string): TokenizeResult {
     }
 
     if (char === " " || char === "\t") {
-      current = pushWord(tokens, current, tokenStarted);
-      tokenStarted = false;
+      finishWord();
       continue;
     }
 
     if (char === "\\") {
       if (next === undefined) {
-        return fail("Trailing backslash is outside the auto-allow subset");
+        return syntaxError("Trailing backslash is outside the auto-allow subset");
       }
-      if (next === "\n") {
-        index += 1;
-        continue;
+      if (isNewline(next)) {
+        return syntaxError("Multiple commands and newlines are outside the auto-allow subset");
       }
 
       current += next;
@@ -108,64 +111,62 @@ export function guardBashTokenizeSafeShell(input: string): TokenizeResult {
     }
 
     if (char === "|") {
-      current = pushWord(tokens, current, tokenStarted);
-      tokenStarted = false;
+      finishWord();
       tokens.push({ type: "pipe" });
       continue;
     }
 
-    if (char === "\n" || char === "\r") {
-      return fail("Multiple commands and newlines are outside the auto-allow subset");
+    if (isNewline(char)) {
+      return syntaxError("Multiple commands and newlines are outside the auto-allow subset");
     }
 
     if (char === "&") {
-      return fail("Logical/background operators are outside the auto-allow subset");
+      return syntaxError("Logical/background operators are outside the auto-allow subset");
     }
 
     if (char === ";") {
-      return fail("Command separators are outside the auto-allow subset");
+      return syntaxError("Command separators are outside the auto-allow subset");
     }
 
     if (char === "<" || char === ">") {
-      return fail("Redirections are outside the auto-allow subset");
+      return syntaxError("Redirections are outside the auto-allow subset");
     }
 
     if (char === "$" || char === "`") {
-      return fail("Variable and command expansion are outside the auto-allow subset");
+      return syntaxError("Variable and command expansion are outside the auto-allow subset");
     }
 
     if (char === "(" || char === ")" || char === "{" || char === "}") {
-      return fail("Grouping and subshell syntax are outside the auto-allow subset");
+      return syntaxError("Grouping and subshell syntax are outside the auto-allow subset");
     }
 
     if (char === "*" || char === "?" || char === "[" || char === "]" || char === "~" || char === "!") {
-      return fail("This command uses shell expansion or syntax outside the auto-allow subset");
+      return syntaxError("This command uses shell expansion or syntax outside the auto-allow subset");
     }
 
     current += char;
     tokenStarted = true;
   }
 
-  current = pushWord(tokens, current, tokenStarted);
-  void current;
-
   if (mode !== "normal") {
-    return fail("Unterminated quote");
+    return new GuardBashUnterminatedQuoteError("Unterminated quote");
   }
+
+  finishWord();
 
   if (tokens.length === 0) {
-    return fail("Empty command");
+    return new GuardBashEmptyCommandError("Empty command");
   }
 
-  if (tokens[0]?.type === "pipe" || tokens[tokens.length - 1]?.type === "pipe") {
-    return fail("Pipelines must have a command on both sides of |");
+  if (tokens[0]?.type === "pipe" || tokens.at(-1)?.type === "pipe") {
+    return new GuardBashInvalidPipelineError("Pipelines must have a command on both sides of |");
   }
 
   for (let index = 1; index < tokens.length; index += 1) {
     if (tokens[index]?.type === "pipe" && tokens[index - 1]?.type === "pipe") {
-      return fail("Pipelines must have a command between | operators");
+      return new GuardBashInvalidPipelineError("Pipelines must have a command between | operators");
     }
   }
 
-  return { ok: true, tokens };
+  return tokens;
 }

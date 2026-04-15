@@ -1,5 +1,11 @@
+import {
+  GuardBashApprovalRequiredError,
+  GuardBashCommandPathNotAllowedError,
+  GuardBashEnvironmentAssignmentNotAllowedError,
+  GuardBashInvalidPipelineError,
+} from "./errors.ts";
 import { guardBashTokenizeSafeShell } from "./tokenize.ts";
-import type { GuardBashParsedStage, GuardBashParseResult } from "./types.ts";
+import type { GuardBashParsedStage } from "./types.ts";
 
 // Checks whether a token starts with a shell-style env assignment.
 function isShellAssignment(token: string): boolean {
@@ -7,27 +13,29 @@ function isShellAssignment(token: string): boolean {
 }
 
 // Parses a strict shell subset into pipeline stages for auto-allow decisions.
-export function guardBashParseSafeCommandLine(input: string): GuardBashParseResult {
+export function guardBashParseSafeCommandLine(input: string): GuardBashApprovalRequiredError | GuardBashParsedStage[] {
   const tokenized = guardBashTokenizeSafeShell(input);
-  if (!tokenized.ok) {
+  if (tokenized instanceof GuardBashApprovalRequiredError) {
     return tokenized;
   }
 
   const stages: GuardBashParsedStage[] = [];
   let words: string[] = [];
 
-  const pushStage = (): GuardBashParseResult | undefined => {
+  const pushStage = (): GuardBashApprovalRequiredError | undefined => {
     if (words.length === 0) {
-      return { ok: false, reason: "Empty pipeline stage" };
+      return new GuardBashInvalidPipelineError("Empty pipeline stage");
     }
 
     const [command, ...args] = words;
     if (isShellAssignment(command)) {
-      return { ok: false, reason: "Environment variable assignments are outside the auto-allow subset" };
+      return new GuardBashEnvironmentAssignmentNotAllowedError(
+        "Environment variable assignments are outside the auto-allow subset",
+      );
     }
 
     if (command.includes("/")) {
-      return { ok: false, reason: "Command paths are outside the auto-allow subset" };
+      return new GuardBashCommandPathNotAllowedError("Command paths are outside the auto-allow subset");
     }
 
     stages.push({ command, args });
@@ -35,10 +43,10 @@ export function guardBashParseSafeCommandLine(input: string): GuardBashParseResu
     return undefined;
   };
 
-  for (const token of tokenized.tokens) {
+  for (const token of tokenized) {
     if (token.type === "pipe") {
       const error = pushStage();
-      if (error) return error;
+      if (error !== undefined) return error;
       continue;
     }
 
@@ -46,7 +54,7 @@ export function guardBashParseSafeCommandLine(input: string): GuardBashParseResu
   }
 
   const error = pushStage();
-  if (error) return error;
+  if (error !== undefined) return error;
 
-  return { ok: true, stages };
+  return stages;
 }

@@ -1,41 +1,48 @@
+import { GuardBashApprovalRequiredError, GuardBashCommandNotAllowedError } from "./errors.ts";
 import { guardBashParseSafeCommandLine } from "./parse.ts";
 import { guardBashGetCommandValidator } from "./validate.ts";
-import type { GuardBashDecision, GuardBashParsedStage } from "./types.ts";
+import type { GuardBashAllowedCommand, GuardBashParsedStage } from "./types.ts";
 
-export type {
-  GuardBashDecision,
-  GuardBashParsedStage,
-  GuardBashParseResult,
-  GuardBashShellToken,
-  GuardBashValidationResult,
-  GuardBashValidator,
-} from "./types.ts";
+export {
+  GuardBashApprovalRequiredError,
+  GuardBashCommandNotAllowedError,
+  GuardBashCommandOptionNotAllowedError,
+  GuardBashCommandOptionValueMissingError,
+  GuardBashCommandPathNotAllowedError,
+  GuardBashEmptyCommandError,
+  GuardBashEnvironmentAssignmentNotAllowedError,
+  GuardBashFindTokenNotAllowedError,
+  GuardBashInvalidPipelineError,
+  GuardBashSyntaxNotAllowedError,
+  GuardBashUnterminatedQuoteError,
+} from "./errors.ts";
+export type { GuardBashAllowedCommand, GuardBashParsedStage, GuardBashShellToken } from "./types.ts";
 export { guardBashParseSafeCommandLine } from "./parse.ts";
 
 // Decides whether a bash command can run without extra user confirmation.
-export function guardBashEvaluateCommand(commandLine: string): GuardBashDecision {
+export function guardBashEvaluateCommand(commandLine: string): GuardBashAllowedCommand | GuardBashApprovalRequiredError {
   const parsed = guardBashParseSafeCommandLine(commandLine);
-  if (!parsed.ok) {
-    return { autoAllow: false, reason: parsed.reason };
+  if (parsed instanceof GuardBashApprovalRequiredError) {
+    return parsed;
   }
 
-  for (const stage of parsed.stages) {
+  for (const stage of parsed) {
     const validator = guardBashGetCommandValidator(stage.command);
     if (validator === undefined) {
-      return {
-        autoAllow: false,
-        reason: `Command ${stage.command} is not in the strict auto-allow list`,
-        stages: parsed.stages,
-      };
+      return new GuardBashCommandNotAllowedError(
+        `Command ${stage.command} is not in the strict auto-allow list`,
+        parsed,
+      );
     }
 
-    const validation = validator(stage);
-    if (!validation.ok) {
-      return { autoAllow: false, reason: validation.reason, stages: parsed.stages };
+    const error = validator(stage);
+    if (error !== undefined) {
+      error.stages ??= parsed;
+      return error;
     }
   }
 
-  return { autoAllow: true, stages: parsed.stages };
+  return { stages: parsed };
 }
 
 // Formats parsed stages for UI messages shown during approval prompts.

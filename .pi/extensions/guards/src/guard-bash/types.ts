@@ -7,16 +7,6 @@ export type GuardBashParsedStage = {
   args: string[];
 };
 
-export type GuardBashParseResult =
-  | { ok: true; stages: GuardBashParsedStage[] }
-  | { ok: false; reason: string };
-
-export type GuardBashValidationResult =
-  | { ok: true }
-  | { ok: false; reason: string };
-
-export type GuardBashDecision =
-  | { autoAllow: true; stages: GuardBashParsedStage[] }
-  | { autoAllow: false; reason: string; stages?: GuardBashParsedStage[] };
-
-export type GuardBashValidator = (stage: GuardBashParsedStage) => GuardBashValidationResult;
+export type GuardBashAllowedCommand = {
+  stages: GuardBashParsedStage[];
+};
