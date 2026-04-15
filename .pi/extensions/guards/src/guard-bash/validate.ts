@@ -5,6 +5,7 @@ import {
   type GuardBashApprovalRequiredError,
 } from "./errors.ts";
 import type { GuardBashParsedStage } from "./types.ts";
+import { guardBashValidateGitStage } from "./validate-git.ts";
 
 const SIMPLE_READONLY_COMMANDS = new Set([
   "basename",
@@ -165,6 +166,7 @@ const COMMAND_VALIDATORS = new Map<string, GuardBashValidator>([
   ...Array.from(SIMPLE_READONLY_COMMANDS, (command) => [command, validateSimpleReadonlyCommand] as const),
   ["fd", validateFd],
   ["find", validateFind],
+  ["git", guardBashValidateGitStage],
   ["rg", validateRipgrep],
   ["sort", validateSort],
 ]);

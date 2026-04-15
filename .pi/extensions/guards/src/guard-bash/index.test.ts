@@ -48,13 +48,32 @@ test("guardBashValidateCommand auto-allows safe find usage", () => {
   assert.equal(validationError, undefined);
 });
 
-test("guardBashValidateCommand returns a typed error for unknown commands", () => {
+test("guardBashValidateCommand auto-allows git status", () => {
   const validationError = guardBashValidateCommand("git status");
+
+  assert.equal(validationError, undefined);
+});
+
+test("guardBashValidateCommand auto-allows git status --short", () => {
+  const validationError = guardBashValidateCommand("git status --short");
+
+  assert.equal(validationError, undefined);
+});
+
+test("guardBashValidateCommand auto-allows safe git diff usage", () => {
+  const validationError = guardBashValidateCommand("git diff --cached --stat HEAD -- src");
+
+  assert.equal(validationError, undefined);
+});
+
+test("guardBashValidateCommand returns a typed error for unknown commands", () => {
+  const validationError = guardBashValidateCommand("svn status");
 
   assert.ok(validationError instanceof GuardBashCommandNotAllowedError);
   if (!(validationError instanceof GuardBashCommandNotAllowedError)) return;
   assert.match(validationError.message, /not in the strict auto-allow list/);
 });
+
 
 test("guardBashValidateCommand returns a typed error for disallowed shell syntax", () => {
   const validationError = guardBashValidateCommand("pwd && ls");
@@ -78,6 +97,38 @@ test("guardBashValidateCommand returns a typed error for rg --pre", () => {
   assert.ok(validationError instanceof GuardBashCommandOptionNotAllowedError);
   if (!(validationError instanceof GuardBashCommandOptionNotAllowedError)) return;
   assert.match(validationError.message, /rg --pre/);
+});
+
+test("guardBashValidateCommand returns a typed error for unsupported git subcommands", () => {
+  const validationError = guardBashValidateCommand("git checkout main");
+
+  assert.ok(validationError instanceof GuardBashCommandOptionNotAllowedError);
+  if (!(validationError instanceof GuardBashCommandOptionNotAllowedError)) return;
+  assert.match(validationError.message, /git checkout/);
+});
+
+test("guardBashValidateCommand returns a typed error for git global options", () => {
+  const validationError = guardBashValidateCommand("git -c core.pager=cat diff");
+
+  assert.ok(validationError instanceof GuardBashCommandOptionNotAllowedError);
+  if (!(validationError instanceof GuardBashCommandOptionNotAllowedError)) return;
+  assert.match(validationError.message, /git global options/);
+});
+
+test("guardBashValidateCommand returns a typed error for git diff external helpers", () => {
+  const validationError = guardBashValidateCommand("git diff --ext-diff");
+
+  assert.ok(validationError instanceof GuardBashCommandOptionNotAllowedError);
+  if (!(validationError instanceof GuardBashCommandOptionNotAllowedError)) return;
+  assert.match(validationError.message, /git diff --ext-diff/);
+});
+
+test("guardBashValidateCommand returns a typed error for git diff output files", () => {
+  const validationError = guardBashValidateCommand("git diff --output patch.txt");
+
+  assert.ok(validationError instanceof GuardBashCommandOptionNotAllowedError);
+  if (!(validationError instanceof GuardBashCommandOptionNotAllowedError)) return;
+  assert.match(validationError.message, /git diff --output/);
 });
 
 test("guardBashValidateCommand returns a typed error for sort output options", () => {

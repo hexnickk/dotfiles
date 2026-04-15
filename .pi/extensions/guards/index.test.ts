@@ -63,20 +63,20 @@ function createTestHarness(yoloEnabled: boolean) {
 
 test("guards blocks unsafe bash commands without UI", async () => {
   const harness = createTestHarness(false);
-  const { result } = await harness.runToolCall("git status");
+  const { result } = await harness.runToolCall("git checkout main");
 
   assert.deepEqual(result, {
     block: true,
-    reason: "Command git is not in the strict auto-allow list",
+    reason: "git checkout is not in the strict auto-allow list",
   });
 });
 
 test("guards prompts before unsafe interactive bash commands", async () => {
   const harness = createTestHarness(false);
-  const { confirmCalls, result } = await harness.runToolCall("git status", { hasUI: true, confirmResult: false });
+  const { confirmCalls, result } = await harness.runToolCall("git checkout main", { hasUI: true, confirmResult: false });
 
   assert.equal(confirmCalls.length, 1);
-  assert.equal(confirmCalls[0]?.body, "git status");
+  assert.equal(confirmCalls[0]?.body, "git checkout main");
   assert.deepEqual(result, { block: true, reason: "Blocked by user" });
 });
 
@@ -88,11 +88,19 @@ test("guards skips prompts for safe bash commands", async () => {
   assert.equal(result, undefined);
 });
 
+test("guards skips prompts for safe git status commands", async () => {
+  const harness = createTestHarness(false);
+  const { confirmCalls, result } = await harness.runToolCall("git status --short", { hasUI: true });
+
+  assert.equal(confirmCalls.length, 0);
+  assert.equal(result, undefined);
+});
+
 test("guards enables yolo mode after session start and notifies interactive users", async () => {
   const harness = createTestHarness(true);
 
   await harness.runSessionStart(true);
-  const { confirmCalls, result } = await harness.runToolCall("git status", { hasUI: true, confirmResult: false });
+  const { confirmCalls, result } = await harness.runToolCall("git checkout main", { hasUI: true, confirmResult: false });
 
   assert.deepEqual(harness.notifications, [{ message: "⚠️ Yolo mode is enabled", level: "warning" }]);
   assert.equal(confirmCalls.length, 0);
