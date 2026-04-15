@@ -34,3 +34,7 @@ alias opus='claude --model opus'
 alias opusplan='claude --model opusplan'
 alias fkill='ps aux | fzf | awk "{print \$2}" | xargs kill'
 alias vim='nvim'
+
+# Added by LM Studio CLI (lms)
+export PATH="$PATH:/Users/hexnickk/.lmstudio/bin"
+# End of LM Studio CLI section
