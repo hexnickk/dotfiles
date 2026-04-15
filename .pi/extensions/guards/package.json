@@ -1,12 +1,10 @@
 {
-  "name": "guardrails-extension",
+  "name": "pi-guards",
   "private": true,
   "type": "module",
-  "pi": {
-    "extensions": ["./index.ts"]
-  },
   "scripts": {
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test src/guard-bash/index.test.ts"
   },
   "devDependencies": {
     "@mariozechner/pi-coding-agent": "^0.66.1",
