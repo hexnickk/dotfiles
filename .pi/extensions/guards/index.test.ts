@@ -1,16 +1,33 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import guards from "./index.ts";
+import { guardsRegister, guardsReplaceActiveBashTools } from "./index.ts";
 
-type EventHandler = (event: unknown, ctx: unknown) => Promise<unknown> | unknown;
+type EventHandler = (event: any, ctx: any) => Promise<unknown> | unknown;
 
-// Creates a tiny extension harness for testing the public guards wiring.
-function createTestHarness(yoloEnabled: boolean) {
+type HarnessOptions = {
+  activeTools?: string[];
+  allowedTools?: string[];
+  ensureLinuxBubblewrap?: () => Promise<void>;
+  platform?: NodeJS.Platform;
+  yoloEnabled?: boolean;
+};
+
+// Creates a tiny extension harness for testing public guards wiring.
+// Inputs are initial flags/tools. Output exposes handlers and captured side effects. Side effects: registers the extension under test.
+function createTestHarness(options: HarnessOptions = {}) {
   const handlers = new Map<string, EventHandler>();
+  const registeredTools: string[] = [];
   const notifications: Array<{ message: string; level: string }> = [];
+  let activeTools = [...(options.activeTools ?? ["read", "bash", "edit", "write"])];
+  const allowedTools = options.allowedTools ? new Set(options.allowedTools) : undefined;
+  const yoloEnabled = options.yoloEnabled ?? false;
 
   const pi = {
+    exec: async () => ({ stdout: "", stderr: "", code: 0, killed: false }),
+    getActiveTools() {
+      return [...activeTools];
+    },
     getFlag(name: string) {
       return name === "yolo" ? yoloEnabled : undefined;
     },
@@ -20,97 +37,187 @@ function createTestHarness(yoloEnabled: boolean) {
     registerFlag() {
       return undefined;
     },
+    registerTool(tool: { name: string }) {
+      registeredTools.push(tool.name);
+    },
+    setActiveTools(next: string[]) {
+      activeTools = allowedTools ? next.filter((tool) => allowedTools.has(tool)) : [...next];
+    },
   };
 
-  guards(pi as never);
+  guardsRegister(pi as never, {
+    ensureLinuxBubblewrap: options.ensureLinuxBubblewrap,
+    platform: options.platform ?? "darwin",
+  });
+
+  const ctx = {
+    cwd: process.cwd(),
+    hasUI: true,
+    ui: {
+      notify(message: string, level: string) {
+        notifications.push({ message, level });
+      },
+    },
+  };
 
   return {
-    notifications,
-    async runSessionStart(hasUI: boolean) {
-      const handler = handlers.get("session_start");
-      assert.ok(handler !== undefined);
-      await handler?.({}, {
-        hasUI,
-        ui: {
-          notify(message: string, level: string) {
-            notifications.push({ message, level });
-          },
-        },
-      });
+    get activeTools() {
+      return activeTools;
     },
-    async runToolCall(command: string, options?: { confirmResult?: boolean; hasUI?: boolean; toolName?: string }) {
-      const confirmCalls: Array<{ title: string; body: string }> = [];
+    notifications,
+    registeredTools,
+    async runBeforeAgentStart(systemPrompt = "base prompt") {
+      const handler = handlers.get("before_agent_start");
+      assert.ok(handler);
+      return handler({ systemPrompt }, ctx);
+    },
+    async runSessionStart() {
+      const handler = handlers.get("session_start");
+      assert.ok(handler);
+      await handler({}, ctx);
+    },
+    async runToolCall(toolName = "bash") {
       const handler = handlers.get("tool_call");
-      assert.ok(handler !== undefined);
-
-      const result = await handler?.(
-        { toolName: options?.toolName ?? "bash", input: { command } },
-        {
-          hasUI: options?.hasUI ?? false,
-          ui: {
-            async confirm(title: string, body: string) {
-              confirmCalls.push({ title, body });
-              return options?.confirmResult ?? false;
-            },
-          },
-        },
-      );
-
-      return { confirmCalls, result };
+      assert.ok(handler);
+      return handler({ toolName, input: { command: "pwd" } }, ctx);
     },
   };
 }
 
-test("guards blocks unsafe bash commands without UI", async () => {
-  const harness = createTestHarness(false);
-  const { result } = await harness.runToolCall("git checkout main");
+test("guardsReplaceActiveBashTools swaps built-in bash for sandbox and dangerous bash", () => {
+  assert.deepEqual(guardsReplaceActiveBashTools(["read", "bash", "edit"]), [
+    "read",
+    "sandbox_bash",
+    "dangerous_bash",
+    "edit",
+  ]);
+});
+
+test("guardsReplaceActiveBashTools leaves tool sets without bash unchanged", () => {
+  assert.deepEqual(guardsReplaceActiveBashTools(["read", "edit"]), ["read", "edit"]);
+});
+
+test("default session with active bash replaces it with sandbox_bash and dangerous_bash", async () => {
+  const harness = createTestHarness({ activeTools: ["read", "bash", "write"] });
+
+  await harness.runSessionStart();
+
+  assert.deepEqual(harness.registeredTools, ["sandbox_bash", "dangerous_bash"]);
+  assert.deepEqual(harness.activeTools, ["read", "sandbox_bash", "dangerous_bash", "write"]);
+});
+
+test("default session without active bash does not force-add guard bash tools", async () => {
+  const harness = createTestHarness({ activeTools: ["read", "edit"] });
+
+  await harness.runSessionStart();
+
+  assert.deepEqual(harness.registeredTools, ["sandbox_bash", "dangerous_bash"]);
+  assert.deepEqual(harness.activeTools, ["read", "edit"]);
+});
+
+test("default session preserves explicitly active guard bash tools and adds the missing pair", async () => {
+  const harness = createTestHarness({ activeTools: ["read", "sandbox_bash"] });
+
+  await harness.runSessionStart();
+
+  assert.deepEqual(harness.activeTools, ["read", "sandbox_bash", "dangerous_bash"]);
+});
+
+test("Linux default session with active bash checks bubblewrap setup", async () => {
+  let ensureCalls = 0;
+  const harness = createTestHarness({
+    activeTools: ["read", "bash"],
+    ensureLinuxBubblewrap: async () => {
+      ensureCalls += 1;
+    },
+    platform: "linux",
+  });
+
+  await harness.runSessionStart();
+
+  assert.equal(ensureCalls, 1);
+});
+
+test("Linux default session without active bash skips bubblewrap setup", async () => {
+  let ensureCalls = 0;
+  const harness = createTestHarness({
+    activeTools: ["read"],
+    ensureLinuxBubblewrap: async () => {
+      ensureCalls += 1;
+    },
+    platform: "linux",
+  });
+
+  await harness.runSessionStart();
+
+  assert.equal(ensureCalls, 0);
+});
+
+test("yolo session leaves active tools unchanged and does not register replacements", async () => {
+  let ensureCalls = 0;
+  const harness = createTestHarness({
+    activeTools: ["read", "bash"],
+    ensureLinuxBubblewrap: async () => {
+      ensureCalls += 1;
+    },
+    platform: "linux",
+    yoloEnabled: true,
+  });
+
+  await harness.runSessionStart();
+
+  assert.equal(ensureCalls, 0);
+  assert.deepEqual(harness.activeTools, ["read", "bash"]);
+  assert.deepEqual(harness.registeredTools, []);
+  assert.deepEqual(harness.notifications, [{ message: "⚠️ Yolo mode is enabled", level: "warning" }]);
+});
+
+test("default fallback guard blocks stale built-in bash tool calls", async () => {
+  const harness = createTestHarness();
+
+  await harness.runSessionStart();
+  const result = await harness.runToolCall("bash");
 
   assert.deepEqual(result, {
     block: true,
-    reason: "git checkout is not in the strict auto-allow list",
+    reason: "Use sandbox_bash for sandboxed commands or dangerous_bash for confirmed host commands.",
   });
 });
 
-test("guards prompts before unsafe interactive bash commands", async () => {
-  const harness = createTestHarness(false);
-  const { confirmCalls, result } = await harness.runToolCall("git checkout main", { hasUI: true, confirmResult: false });
+test("yolo mode does not block built-in bash tool calls", async () => {
+  const harness = createTestHarness({ yoloEnabled: true });
 
-  assert.equal(confirmCalls.length, 1);
-  assert.equal(confirmCalls[0]?.body, "git checkout main");
-  assert.deepEqual(result, { block: true, reason: "Blocked by user" });
-});
+  await harness.runSessionStart();
+  const result = await harness.runToolCall("bash");
 
-test("guards skips prompts for safe bash commands", async () => {
-  const harness = createTestHarness(false);
-  const { confirmCalls, result } = await harness.runToolCall("pwd", { hasUI: true });
-
-  assert.equal(confirmCalls.length, 0);
   assert.equal(result, undefined);
 });
 
-test("guards skips prompts for safe git status commands", async () => {
-  const harness = createTestHarness(false);
-  const { confirmCalls, result } = await harness.runToolCall("git status --short", { hasUI: true });
+test("default before_agent_start adds concise bash tool guidance", async () => {
+  const harness = createTestHarness();
 
-  assert.equal(confirmCalls.length, 0);
+  await harness.runSessionStart();
+  const result = await harness.runBeforeAgentStart("base");
+
+  assert.match((result as { systemPrompt: string }).systemPrompt, /use sandbox_bash for normal shell commands/);
+  assert.match((result as { systemPrompt: string }).systemPrompt, /^base/);
+});
+
+test("default before_agent_start omits guidance when guard tools cannot be activated", async () => {
+  const harness = createTestHarness({ activeTools: ["read", "bash"], allowedTools: ["read"] });
+
+  await harness.runSessionStart();
+  const result = await harness.runBeforeAgentStart("base");
+
+  assert.deepEqual(harness.activeTools, ["read"]);
   assert.equal(result, undefined);
 });
 
-test("guards skips prompts for safe git diff commands", async () => {
-  const harness = createTestHarness(false);
-  const { confirmCalls, result } = await harness.runToolCall("git diff --no-textconv --stat HEAD~1", { hasUI: true });
+test("yolo before_agent_start leaves the prompt unchanged", async () => {
+  const harness = createTestHarness({ yoloEnabled: true });
 
-  assert.equal(confirmCalls.length, 0);
-  assert.equal(result, undefined);
-});
+  await harness.runSessionStart();
+  const result = await harness.runBeforeAgentStart("base");
 
-test("guards enables yolo mode after session start and notifies interactive users", async () => {
-  const harness = createTestHarness(true);
-
-  await harness.runSessionStart(true);
-  const { confirmCalls, result } = await harness.runToolCall("git checkout main", { hasUI: true, confirmResult: false });
-
-  assert.deepEqual(harness.notifications, [{ message: "⚠️ Yolo mode is enabled", level: "warning" }]);
-  assert.equal(confirmCalls.length, 0);
   assert.equal(result, undefined);
 });

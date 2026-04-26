@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "check": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test index.test.ts src/guard-bash/index.test.ts src/guard-bash/tokenize.test.ts"
+    "test": "node --experimental-strip-types --test \"*.test.ts\" \"src/**/*.test.ts\""
   },
   "devDependencies": {
     "@mariozechner/pi-coding-agent": "^0.66.1",

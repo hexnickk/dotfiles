@@ -9,3 +9,6 @@ __pycache__
 
 # Secrets & variables
 .env
+
+# Agent specific
+docs/plans
