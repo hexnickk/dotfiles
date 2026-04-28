@@ -93,26 +93,45 @@ test("guardsReplaceActiveBashTools swaps built-in bash for sandbox and dangerous
   ]);
 });
 
-test("guardsReplaceActiveBashTools leaves tool sets without bash unchanged", () => {
-  assert.deepEqual(guardsReplaceActiveBashTools(["read", "edit"]), ["read", "edit"]);
+test("guardsReplaceActiveBashTools restores guard bash for mutable default-like tool sets", () => {
+  assert.deepEqual(guardsReplaceActiveBashTools(["read", "edit", "write"]), [
+    "read",
+    "edit",
+    "write",
+    "sandbox_bash",
+    "dangerous_bash",
+  ]);
 });
 
-test("default session with active bash replaces it with sandbox_bash and dangerous_bash", async () => {
+test("guardsReplaceActiveBashTools leaves read-only tool sets without bash unchanged", () => {
+  assert.deepEqual(guardsReplaceActiveBashTools(["read", "grep", "find", "ls"]), ["read", "grep", "find", "ls"]);
+});
+
+test("default session with active bash replaces it and enables guarded remove for mutations", async () => {
   const harness = createTestHarness({ activeTools: ["read", "bash", "write"] });
 
   await harness.runSessionStart();
 
-  assert.deepEqual(harness.registeredTools, ["sandbox_bash", "dangerous_bash"]);
-  assert.deepEqual(harness.activeTools, ["read", "sandbox_bash", "dangerous_bash", "write"]);
+  assert.deepEqual(harness.registeredTools, ["write", "edit", "remove", "sandbox_bash", "dangerous_bash"]);
+  assert.deepEqual(harness.activeTools, ["read", "sandbox_bash", "dangerous_bash", "write", "remove"]);
 });
 
-test("default session without active bash does not force-add guard bash tools", async () => {
-  const harness = createTestHarness({ activeTools: ["read", "edit"] });
+test("default session with mutable tools but missing bash restores guard bash tools", async () => {
+  const harness = createTestHarness({ activeTools: ["read", "edit", "write"] });
 
   await harness.runSessionStart();
 
-  assert.deepEqual(harness.registeredTools, ["sandbox_bash", "dangerous_bash"]);
-  assert.deepEqual(harness.activeTools, ["read", "edit"]);
+  assert.deepEqual(harness.registeredTools, ["write", "edit", "remove", "sandbox_bash", "dangerous_bash"]);
+  assert.deepEqual(harness.activeTools, ["read", "edit", "write", "sandbox_bash", "dangerous_bash", "remove"]);
+});
+
+test("read-only session without active bash does not force-add guard bash tools", async () => {
+  const harness = createTestHarness({ activeTools: ["read", "grep", "find", "ls"] });
+
+  await harness.runSessionStart();
+
+  assert.deepEqual(harness.registeredTools, ["write", "edit", "remove", "sandbox_bash", "dangerous_bash"]);
+  assert.deepEqual(harness.activeTools, ["read", "grep", "find", "ls"]);
 });
 
 test("default session preserves explicitly active guard bash tools and adds the missing pair", async () => {
@@ -127,6 +146,21 @@ test("Linux default session with active bash checks bubblewrap setup", async () 
   let ensureCalls = 0;
   const harness = createTestHarness({
     activeTools: ["read", "bash"],
+    ensureLinuxBubblewrap: async () => {
+      ensureCalls += 1;
+    },
+    platform: "linux",
+  });
+
+  await harness.runSessionStart();
+
+  assert.equal(ensureCalls, 1);
+});
+
+test("Linux mutable session with restored guard bash checks bubblewrap setup", async () => {
+  let ensureCalls = 0;
+  const harness = createTestHarness({
+    activeTools: ["read", "edit", "write"],
     ensureLinuxBubblewrap: async () => {
       ensureCalls += 1;
     },
@@ -200,16 +234,27 @@ test("default before_agent_start adds concise bash tool guidance", async () => {
   const result = await harness.runBeforeAgentStart("base");
 
   assert.match((result as { systemPrompt: string }).systemPrompt, /use sandbox_bash for normal shell commands/);
+  assert.match((result as { systemPrompt: string }).systemPrompt, /write, edit, and remove/);
+  assert.match((result as { systemPrompt: string }).systemPrompt, /outside workspace paths require interactive session confirmation/);
   assert.match((result as { systemPrompt: string }).systemPrompt, /^base/);
 });
 
-test("default before_agent_start omits guidance when guard tools cannot be activated", async () => {
-  const harness = createTestHarness({ activeTools: ["read", "bash"], allowedTools: ["read"] });
+test("read-only before_agent_start omits guard guidance without active guard tools", async () => {
+  const harness = createTestHarness({ activeTools: ["read", "grep", "find", "ls"] });
 
   await harness.runSessionStart();
   const result = await harness.runBeforeAgentStart("base");
 
-  assert.deepEqual(harness.activeTools, ["read"]);
+  assert.equal(result, undefined);
+});
+
+test("default before_agent_start omits guidance when guard tools cannot be activated", async () => {
+  const harness = createTestHarness({ activeTools: ["read", "bash"], allowedTools: [] });
+
+  await harness.runSessionStart();
+  const result = await harness.runBeforeAgentStart("base");
+
+  assert.deepEqual(harness.activeTools, []);
   assert.equal(result, undefined);
 });
 

@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { sandboxBuildEnv } from "./env.ts";
 
-test("sandboxBuildEnv forwards only explicit safe variables", () => {
+test("sandboxBuildEnv preserves the user env while redirecting temp and cache writes", () => {
   const env = sandboxBuildEnv("/tmp/sandbox", {
     PATH: "/bin",
     HOME: "/home/user",
@@ -13,24 +13,16 @@ test("sandboxBuildEnv forwards only explicit safe variables", () => {
     TERM: "xterm",
     AWS_SECRET_ACCESS_KEY: "secret",
     ANTHROPIC_API_KEY: "secret",
+    TMPDIR: "/host/tmp",
   });
 
-  assert.deepEqual(Object.keys(env).sort(), [
-    "HOME",
-    "LOGNAME",
-    "PATH",
-    "PIP_CACHE_DIR",
-    "SHELL",
-    "TERM",
-    "TMPDIR",
-    "USER",
-    "XDG_CACHE_HOME",
-    "npm_config_cache",
-  ]);
-  assert.equal(env.AWS_SECRET_ACCESS_KEY, undefined);
-  assert.equal(env.ANTHROPIC_API_KEY, undefined);
-  assert.equal(env.HOME, "/tmp/sandbox");
-  assert.equal(env.SHELL, "/bin/bash");
+  assert.equal(env.AWS_SECRET_ACCESS_KEY, "secret");
+  assert.equal(env.ANTHROPIC_API_KEY, "secret");
+  assert.equal(env.GIT_OPTIONAL_LOCKS, "0");
+  assert.equal(env.HOME, "/home/user");
+  assert.equal(env.SHELL, "/bin/zsh");
   assert.equal(env.TMPDIR, "/tmp/sandbox");
+  assert.equal(env.TMP, "/tmp/sandbox");
+  assert.equal(env.TEMP, "/tmp/sandbox");
   assert.equal(env.XDG_CACHE_HOME, "/tmp/sandbox/xdg-cache");
 });

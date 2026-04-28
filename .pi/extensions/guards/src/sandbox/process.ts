@@ -6,6 +6,11 @@ import type { SandboxExecOptions, SandboxExecResult } from "./operations.ts";
 
 const EXIT_STDIO_GRACE_MS = 100;
 
+type SandboxChildExit = {
+  code: number | null;
+  signal: NodeJS.Signals | null;
+};
+
 // Runs a prepared sandbox command and streams stdout/stderr.
 // Inputs are a spawn-ready command plus execution callbacks. Output is the process exit code. Side effects: starts/kills processes and removes temp paths.
 export async function sandboxProcessSpawn(
@@ -65,10 +70,12 @@ export async function sandboxProcessSpawn(
     else options.signal?.addEventListener("abort", onAbort, { once: true });
 
     waitPromise
-      .then((code) => {
+      .then(({ code, signal }) => {
         settle(() => {
           if (options.signal?.aborted) reject(new Error("aborted"));
           else if (timedOut) reject(new Error(`timeout:${options.timeout}`));
+          else if (signal) reject(new Error(`terminated by signal ${signal}`));
+          else if (code === null) reject(new Error("terminated without exit code"));
           else resolve({ exitCode: code });
         });
       })
@@ -79,12 +86,13 @@ export async function sandboxProcessSpawn(
 }
 
 // Waits for child termination without hanging when descendants inherit stdout/stderr handles.
-// Input is a spawned process. Output is its exit code or null. Side effects: removes listeners and destroys stdio streams after settling.
-function waitForSandboxChildProcess(child: ChildProcess): Promise<number | null> {
+// Input is a spawned process. Output is its exit code and terminating signal. Side effects: removes listeners and destroys stdio streams after settling.
+function waitForSandboxChildProcess(child: ChildProcess): Promise<SandboxChildExit> {
   return new Promise((resolve, reject) => {
     let settled = false;
     let exited = false;
     let exitCode: number | null = null;
+    let exitSignal: NodeJS.Signals | null = null;
     let postExitTimer: NodeJS.Timeout | undefined;
     let stdoutEnded = !child.stdout;
     let stderrEnded = !child.stderr;
@@ -98,18 +106,18 @@ function waitForSandboxChildProcess(child: ChildProcess): Promise<number | null>
       child.stderr?.removeListener("end", onStderrEnd);
     };
 
-    const finalize = (code: number | null) => {
+    const finalize = (exit: SandboxChildExit) => {
       if (settled) return;
       settled = true;
       cleanup();
       child.stdout?.destroy();
       child.stderr?.destroy();
-      resolve(code);
+      resolve(exit);
     };
 
     const maybeFinalizeAfterExit = () => {
       if (!exited || settled) return;
-      if (stdoutEnded && stderrEnded) finalize(exitCode);
+      if (stdoutEnded && stderrEnded) finalize({ code: exitCode, signal: exitSignal });
     };
 
     const onStdoutEnd = () => {
@@ -129,14 +137,15 @@ function waitForSandboxChildProcess(child: ChildProcess): Promise<number | null>
       reject(error);
     };
 
-    const onExit = (code: number | null) => {
+    const onExit = (code: number | null, signal: NodeJS.Signals | null) => {
       exited = true;
       exitCode = code;
+      exitSignal = signal;
       maybeFinalizeAfterExit();
-      if (!settled) postExitTimer = setTimeout(() => finalize(code), EXIT_STDIO_GRACE_MS);
+      if (!settled) postExitTimer = setTimeout(() => finalize({ code, signal }), EXIT_STDIO_GRACE_MS);
     };
 
-    const onClose = (code: number | null) => finalize(code);
+    const onClose = (code: number | null, signal: NodeJS.Signals | null) => finalize({ code, signal });
 
     child.stdout?.once("end", onStdoutEnd);
     child.stderr?.once("end", onStderrEnd);

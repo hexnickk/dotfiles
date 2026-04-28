@@ -13,7 +13,7 @@ test("linux sandbox preparation uses provided environment source", async () => {
 
   if (result instanceof Error) assert.fail(result.message);
   assert.equal(result.env.PATH, "/custom/bin");
-  assert.equal(result.env.HOME, result.env.TMPDIR);
+  assert.equal(result.env.HOME, "/host/home");
   assert.equal(result.env.USER, "hex");
 });
 

@@ -1,6 +1,15 @@
 import type { ExecResult, ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
 import { bashToolsCreateDangerousBashTool, bashToolsCreateSandboxBashTool } from "./src/bash-tools/index.ts";
 import {
+  fileToolsBuildGuidance,
+  fileToolsCreateApprovalStore,
+  fileToolsCreateEditTool,
+  fileToolsCreateRemoveTool,
+  fileToolsCreateWriteTool,
+  fileToolsEnsureRemoveForMutations,
+  fileToolsResetApprovalStore,
+} from "./src/file-tools/index.ts";
+import {
   sandboxDetectLinuxInstallCommand,
   sandboxLinuxBubblewrapManualGuidance,
   sandboxLinuxHasBubblewrap,
@@ -9,8 +18,8 @@ import {
 const STALE_BASH_BLOCK_REASON =
   "Use sandbox_bash for sandboxed commands or dangerous_bash for confirmed host commands.";
 const GUARD_BASH_TOOLS = ["sandbox_bash", "dangerous_bash"] as const;
-const TOOL_GUIDANCE =
-  "Guard bash mode: use sandbox_bash for normal shell commands that do not need host filesystem writes. Use dangerous_bash only for intentional host filesystem writes or host-side side effects after confirmation.";
+const BASH_TOOL_GUIDANCE =
+  "Guard bash mode: use sandbox_bash for normal shell commands that need the user environment but do not need host filesystem writes. Use dangerous_bash only for intentional host filesystem writes or host-side side effects after confirmation.";
 
 type GuardsDeps = {
   platform?: NodeJS.Platform;
@@ -21,8 +30,10 @@ type GuardsDeps = {
 // Input is Pi's extension API. Output is void. Side effects: registers flags, tools, and event handlers.
 export function guardsRegister(pi: ExtensionAPI, deps: GuardsDeps = {}): void {
   let yoloEnabled = false;
-  let guardToolsActive = false;
+  let bashToolsActive = false;
+  let fileToolGuidance: string | undefined;
   let toolsRegistered = false;
+  const fileApprovalStore = fileToolsCreateApprovalStore();
 
   pi.registerFlag("yolo", {
     description: "Enable 'Yolo' mode, which bypasses guard tool replacement and uses regular host bash.",
@@ -32,19 +43,24 @@ export function guardsRegister(pi: ExtensionAPI, deps: GuardsDeps = {}): void {
 
   pi.on("session_start", async (_event, ctx) => {
     yoloEnabled = pi.getFlag("yolo") === true;
+    fileToolsResetApprovalStore(fileApprovalStore);
 
     if (yoloEnabled) {
-      guardToolsActive = false;
+      bashToolsActive = false;
+      fileToolGuidance = undefined;
       if (ctx.hasUI) ctx.ui.notify("⚠️ Yolo mode is enabled", "warning");
       return;
     }
 
     const activeBeforeRegistration = pi.getActiveTools();
     ensureGuardToolsRegistered();
-    const nextActive = guardsReplaceActiveBashTools(activeBeforeRegistration);
+    const nextActive = fileToolsEnsureRemoveForMutations(
+      guardsReplaceActiveBashTools(activeBeforeRegistration),
+    );
     pi.setActiveTools(nextActive);
     const activeAfterSet = pi.getActiveTools();
-    guardToolsActive = GUARD_BASH_TOOLS.every((tool) => activeAfterSet.includes(tool));
+    bashToolsActive = GUARD_BASH_TOOLS.every((tool) => activeAfterSet.includes(tool));
+    fileToolGuidance = fileToolsBuildGuidance(activeAfterSet);
 
     const platform = deps.platform ?? process.platform;
     const ensureLinuxBubblewrap = deps.ensureLinuxBubblewrap ?? guardsEnsureLinuxBubblewrapForSession;
@@ -59,36 +75,56 @@ export function guardsRegister(pi: ExtensionAPI, deps: GuardsDeps = {}): void {
   });
 
   pi.on("before_agent_start", (event) => {
-    if (yoloEnabled || !guardToolsActive) return;
-    return { systemPrompt: `${event.systemPrompt}\n\n${TOOL_GUIDANCE}` };
+    if (yoloEnabled) return;
+
+    const guidance = [];
+    if (bashToolsActive) guidance.push(BASH_TOOL_GUIDANCE);
+    if (fileToolGuidance) guidance.push(fileToolGuidance);
+    if (guidance.length === 0) return;
+
+    return { systemPrompt: `${event.systemPrompt}\n\n${guidance.join("\n")}` };
   });
 
-  // Registers custom tools lazily after --yolo is known so yolo sessions keep regular bash behavior.
-  // Inputs/outputs are closed over from guardsRegister. Side effects: adds two tool definitions once.
+  // Registers custom tools lazily after --yolo is known so yolo sessions keep regular built-in behavior.
+  // Inputs/outputs are closed over from guardsRegister. Side effects: adds guarded mutation tools and two bash tool definitions once.
   function ensureGuardToolsRegistered(): void {
     if (toolsRegistered) return;
+    pi.registerTool(fileToolsCreateWriteTool({ approvalStore: fileApprovalStore }));
+    pi.registerTool(fileToolsCreateEditTool({ approvalStore: fileApprovalStore }));
+    pi.registerTool(fileToolsCreateRemoveTool({ approvalStore: fileApprovalStore }));
     pi.registerTool(bashToolsCreateSandboxBashTool());
     pi.registerTool(bashToolsCreateDangerousBashTool());
     toolsRegistered = true;
   }
 }
 
-// Replaces active built-in bash with the two explicit guard bash tools without broadening read-only tool sets.
+// Replaces active built-in bash with the two explicit guard bash tools while preserving explicit read-only/no-tool modes.
 // Input is the active tool list before guard tool registration. Output is a deduplicated replacement list. Side effects: none.
 export function guardsReplaceActiveBashTools(activeTools: string[]): string[] {
   const next: string[] = [];
-  let shouldEnsureGuardPair = false;
+  const shouldEnsureGuardPair =
+    activeTools.some((tool) => tool === "bash" || isGuardBashTool(tool)) ||
+    shouldRestoreDefaultBashTools(activeTools);
+
   for (const tool of activeTools) {
     if (tool === "bash") {
-      shouldEnsureGuardPair = true;
       next.push(...GUARD_BASH_TOOLS);
-    } else {
-      if (isGuardBashTool(tool)) shouldEnsureGuardPair = true;
-      next.push(tool);
+      continue;
     }
+
+    next.push(tool);
   }
+
   if (shouldEnsureGuardPair) next.push(...GUARD_BASH_TOOLS);
   return [...new Set(next)];
+}
+
+// Detects mutable default-like tool sets where guard bash tools were likely dropped during lazy registration/reload.
+// Input is active tool names. Output is true when edit/write is active but no bash tool is active. Side effects: none.
+function shouldRestoreDefaultBashTools(activeTools: string[]): boolean {
+  const hasAnyBashTool = activeTools.some((tool) => tool === "bash" || isGuardBashTool(tool));
+  if (hasAnyBashTool) return false;
+  return activeTools.includes("edit") || activeTools.includes("write");
 }
 
 // Checks whether a tool name belongs to the explicit guard bash pair.

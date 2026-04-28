@@ -1,3 +1,4 @@
+import { dirname, isAbsolute, relative, resolve } from "node:path";
 import { sandboxBuildEnv } from "./env.ts";
 import type { SandboxCommand } from "./types.ts";
 
@@ -13,10 +14,11 @@ const LINUX_TMP_SUBDIRS = ["xdg-cache", "npm-cache", "pip-cache"];
 
 // Builds a bubblewrap invocation for sandboxed bash execution on Linux.
 // Inputs are the shell command, runtime cwd, sandbox-visible temp root, optional bwrap path, and env source.
-// Output is a spawn-ready command using a read-only host root plus writable tmpfs temp/cache mounts. Side effects: none.
+// Output is a spawn-ready command with broad read-only host access plus writable tmpfs temp/cache mounts. Side effects: none.
 export function sandboxBuildLinuxCommand(input: SandboxLinuxCommandInput): SandboxCommand {
   const sandboxTemp = input.sandboxTemp.replace(/\/+$/, "");
   const env = sandboxBuildEnv(sandboxTemp, input.envSource);
+  const tmpCwdRoots = linuxTmpCwdRoots(input.cwd);
   const args = [
     "--die-with-parent",
     "--new-session",
@@ -24,20 +26,16 @@ export function sandboxBuildLinuxCommand(input: SandboxLinuxCommandInput): Sandb
     "--unshare-ipc",
     "--unshare-uts",
     "--unshare-cgroup-try",
-    "--ro-bind",
-    "/",
-    "/",
+    ...buildReadonlyBindArgs(["/"]),
     "--proc",
     "/proc",
     "--dev",
     "/dev",
     "--tmpfs",
     "/tmp",
+    ...buildParentDirArgs(tmpCwdRoots),
+    ...buildReadonlyBindArgs(tmpCwdRoots),
     ...buildDirArgs(sandboxTemp),
-    "--tmpfs",
-    "/run",
-    "--tmpfs",
-    "/var/run",
     "--chdir",
     input.cwd,
     ...buildSetEnvArgs(env),
@@ -55,8 +53,15 @@ export function sandboxBuildLinuxCommand(input: SandboxLinuxCommandInput): Sandb
   };
 }
 
-// Converts selected environment variables into bubblewrap --setenv arguments.
-// Inputs: explicit env from sandboxBuildEnv. Output: flattened bubblewrap arguments. Side effects: none.
+// Keeps workspaces under /tmp visible after the sandbox replaces host /tmp with a writable tmpfs.
+// Input is the command cwd. Output is a read-only bind root when cwd is inside /tmp. Side effects: none.
+function linuxTmpCwdRoots(cwd: string): string[] {
+  const resolved = resolve(cwd);
+  return resolved !== "/tmp" && isPathInside(resolved, "/tmp") ? [resolved] : [];
+}
+
+// Converts the sandbox environment into bubblewrap --setenv arguments.
+// Inputs: env from sandboxBuildEnv. Output: flattened bubblewrap arguments. Side effects: none.
 function buildSetEnvArgs(env: NodeJS.ProcessEnv): string[] {
   return Object.entries(env).flatMap(([key, value]) => (value === undefined ? [] : ["--setenv", key, value]));
 }
@@ -68,4 +73,41 @@ function buildDirArgs(sandboxTemp: string): string[] {
     "--dir",
     dir,
   ]);
+}
+
+// Builds bubblewrap read-only bind arguments for host roots.
+// Input is candidate roots. Output is flattened --ro-bind arguments. Side effects: none.
+function buildReadonlyBindArgs(roots: string[]): string[] {
+  return uniquePaths(roots).flatMap((root) => ["--ro-bind", root, root]);
+}
+
+// Builds bubblewrap directory creation arguments for bind target parents.
+// Input is bind roots plus synthetic mount paths. Output is flattened --dir arguments. Side effects: none.
+function buildParentDirArgs(roots: string[]): string[] {
+  return uniquePaths(roots.flatMap((root) => parentDirs(root))).flatMap((dir) => ["--dir", dir]);
+}
+
+// Lists non-root parent directories needed before mounting a root.
+// Input is an absolute root path. Output is ordered parent directories below /. Side effects: none.
+function parentDirs(root: string): string[] {
+  const dirs: string[] = [];
+  let current = dirname(root);
+  while (current !== "/" && current !== ".") {
+    dirs.unshift(current);
+    current = dirname(current);
+  }
+  return dirs;
+}
+
+// Checks whether a path is equal to or contained by a root.
+// Inputs are absolute paths. Output is true when path is within root. Side effects: none.
+function isPathInside(path: string, root: string): boolean {
+  const rel = relative(root, path);
+  return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
+}
+
+// Deduplicates paths while preserving first-seen order.
+// Input is path strings. Output is unique path strings. Side effects: none.
+function uniquePaths(paths: string[]): string[] {
+  return [...new Set(paths)];
 }

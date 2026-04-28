@@ -9,22 +9,45 @@ function indexesOf(args: string[], value: string): number[] {
   return args.flatMap((arg, index) => (arg === value ? [index] : []));
 }
 
-test("linux sandbox builder read-only binds host root and keeps network enabled", () => {
-  const command = sandboxBuildLinuxCommand({ command: "pwd", cwd: "/work", sandboxTemp: "/tmp/pi-guards-test" });
+test("linux sandbox builder binds the host root read-only and keeps network enabled", () => {
+  const command = sandboxBuildLinuxCommand({
+    command: "pwd",
+    cwd: "/work",
+    sandboxTemp: "/tmp/pi-guards-test",
+  });
 
-  const roBindIndex = command.args.indexOf("--ro-bind");
-  assert.equal(command.args[roBindIndex + 1], "/");
-  assert.equal(command.args[roBindIndex + 2], "/");
+  const roBindIndexes = indexesOf(command.args, "--ro-bind");
+  const boundSources = roBindIndexes.map((index) => command.args[index + 1]);
+  const tmpfsTargets = indexesOf(command.args, "--tmpfs").map((index) => command.args[index + 1]);
+  assert.deepEqual(boundSources, ["/"]);
   assert.equal(command.args.includes("--unshare-net"), false);
+  assert.equal(tmpfsTargets.includes("/run"), false);
+  assert.equal(tmpfsTargets.includes("/var/run"), false);
 });
 
-test("linux sandbox builder includes writable tmpfs mounts and temp/cache env", () => {
+test("linux sandbox builder binds tmp workspaces after mounting sandbox tmpfs", () => {
+  const command = sandboxBuildLinuxCommand({
+    command: "pwd",
+    cwd: "/tmp/workspace",
+    sandboxTemp: "/tmp/pi-guards-test",
+  });
+
+  const tmpfsTmpIndex = indexesOf(command.args, "--tmpfs").find((index) => command.args[index + 1] === "/tmp");
+  const roBindIndexes = indexesOf(command.args, "--ro-bind");
+  const hostTmpBindIndex = roBindIndexes.find((index) => command.args[index + 1] === "/tmp");
+  const workspaceBindIndex = roBindIndexes.find((index) => command.args[index + 1] === "/tmp/workspace");
+
+  assert.equal(hostTmpBindIndex, undefined);
+  assert.equal(typeof tmpfsTmpIndex, "number");
+  assert.equal(typeof workspaceBindIndex, "number");
+  assert.ok(workspaceBindIndex! > tmpfsTmpIndex!);
+});
+
+test("linux sandbox builder includes writable temp storage and temp/cache env", () => {
   const command = sandboxBuildLinuxCommand({ command: "pwd", cwd: "/work", sandboxTemp: "/tmp/pi-guards-test" });
 
-  for (const mount of ["/tmp", "/run", "/var/run"]) {
-    const tmpfsIndexes = indexesOf(command.args, "--tmpfs");
-    assert.equal(tmpfsIndexes.some((index) => command.args[index + 1] === mount), true, mount);
-  }
+  const tmpfsIndexes = indexesOf(command.args, "--tmpfs");
+  assert.equal(tmpfsIndexes.some((index) => command.args[index + 1] === "/tmp"), true);
 
   assert.equal(command.env.TMPDIR, "/tmp/pi-guards-test");
   assert.equal(command.env.XDG_CACHE_HOME, "/tmp/pi-guards-test/xdg-cache");

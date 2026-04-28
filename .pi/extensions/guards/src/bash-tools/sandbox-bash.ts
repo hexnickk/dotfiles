@@ -31,7 +31,7 @@ export function bashToolsCreateSandboxBashTool(
     label: "Sandbox Bash",
     description: "Run a shell command in an OS sandbox with host filesystem writes denied.",
     promptSnippet:
-      "Run shell commands in an OS sandbox. The host filesystem is readable but not writable; only sandbox temp storage is writable. Network is enabled. Use sandbox_bash for normal command execution when host filesystem writes are not required.",
+      "Run shell commands in an OS sandbox with the user environment. The host filesystem is readable but not writable; only sandbox temp storage is writable. Network is enabled. Use sandbox_bash for normal command execution when host filesystem writes are not required.",
     promptGuidelines: [
       "Use sandbox_bash for normal command execution when host filesystem writes are not required.",
       "Use dangerous_bash instead when a command intentionally needs host filesystem writes or host-side side effects.",
