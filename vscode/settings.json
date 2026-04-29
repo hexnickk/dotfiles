@@ -78,4 +78,5 @@
     "workbench.editor.limit.perEditorGroup": true,
     "workbench.editor.limit.value": 1,
     "terminal.integrated.scrollback": 100000,
+    "chat.disableAIFeatures": true,
 }
