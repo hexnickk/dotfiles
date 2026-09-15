@@ -1,58 +1,66 @@
 [
-  // --- Window Navigation (Panes/Groups) ---
+  // --- Panes ---
+  // Press Ctrl+B, release it, then the action key.
+  // Focus
   {
-    "key": "ctrl+h",
+    "key": "ctrl+b left",
     "command": "workbench.action.navigateLeft",
   },
   {
-    "key": "cmd+alt+left",
-    "command": "workbench.action.navigateLeft",
-  },
-  {
-    "key": "ctrl+j",
+    "key": "ctrl+b down",
     "command": "workbench.action.navigateDown",
   },
   {
-    "key": "cmd+alt+down",
-    "command": "workbench.action.navigateDown",
-  },
-  {
-    "key": "ctrl+l",
+    "key": "ctrl+b right",
     "command": "workbench.action.navigateRight",
   },
   {
-    "key": "cmd+alt+right",
-    "command": "workbench.action.navigateRight",
-  },
-  {
-    "key": "ctrl+k",
+    "key": "ctrl+b up",
     "command": "workbench.action.navigateUp",
   },
+
+  // Move editor
   {
-    "key": "cmd+alt+up",
-    "command": "workbench.action.navigateUp",
+    "key": "ctrl+b shift+left",
+    "command": "workbench.action.moveEditorToLeftGroup",
+    "when": "(!vim.mode || vim.mode == 'Normal') && editorTextFocus"
   },
   {
-    "key": "cmd+alt+l",
-    "command": "workbench.action.toggleEditorGroupLock"
-  },
-  // --- Split Resizing ---
-  {
-    "key": "ctrl+alt+h",
-    "command": "workbench.action.decreaseViewWidth"
+    "key": "ctrl+b shift+down",
+    "command": "workbench.action.moveEditorToBelowGroup",
+    "when": "(!vim.mode || vim.mode == 'Normal') && editorTextFocus"
   },
   {
-    "key": "ctrl+alt+l",
-    "command": "workbench.action.increaseViewWidth"
+    "key": "ctrl+b shift+right",
+    "command": "workbench.action.moveEditorToRightGroup",
+    "when": "(!vim.mode || vim.mode == 'Normal') && editorTextFocus"
   },
   {
-    "key": "ctrl+alt+j",
-    "command": "workbench.action.decreaseViewHeight"
+    "key": "ctrl+b shift+up",
+    "command": "workbench.action.moveEditorToAboveGroup",
+    "when": "(!vim.mode || vim.mode == 'Normal') && editorTextFocus"
   },
+
+  // Split
   {
-    "key": "ctrl+alt+k",
-    "command": "workbench.action.increaseViewHeight"
+    "key": "ctrl+b -",
+    "command": "workbench.action.splitEditorDown",
+    "when": "!terminalFocus"
   },
+  // Shift+backslash types | on a US keyboard.
+  {
+    "key": "ctrl+b shift+\\",
+    "command": "workbench.action.splitEditorRight",
+    "when": "!terminalFocus"
+  },
+  // Panel terminal splits follow VS Code's panel orientation.
+  {
+    "key": "ctrl+b shift+\\",
+    "command": "workbench.action.terminal.split",
+    "when": "terminalFocus"
+  },
+
+  // Resize
   {
     "key": "ctrl+alt+left",
     "command": "workbench.action.decreaseViewWidth"
@@ -69,6 +77,8 @@
     "key": "ctrl+alt+up",
     "command": "workbench.action.increaseViewHeight"
   },
+
+  // --- Navigation History ---
   {
     "key": "ctrl+o",
     "command": "workbench.action.navigateBack"
@@ -77,121 +87,15 @@
     "key": "ctrl+i",
     "command": "workbench.action.navigateForward"
   },
-  {
-    "key": "ctrl+shift+h",
-    "command": "workbench.action.moveEditorToLeftGroup",
-    "when": "(!vim.mode || vim.mode == 'Normal') && editorTextFocus"
-  },
-  {
-    "key": "ctrl+shift+j",
-    "command": "workbench.action.moveEditorToBelowGroup",
-    "when": "(!vim.mode || vim.mode == 'Normal') && editorTextFocus"
-  },
-  {
-    "key": "ctrl+shift+l",
-    "command": "workbench.action.moveEditorToRightGroup",
-    "when": "(!vim.mode || vim.mode == 'Normal') && editorTextFocus"
-  },
-  {
-    "key": "ctrl+shift+k",
-    "command": "workbench.action.moveEditorToAboveGroup",
-    "when": "(!vim.mode || vim.mode == 'Normal') && editorTextFocus"
-  },
-  // --- Window Management (Panes)
-  {
-    "key": "cmd+d",
-    "command": "workbench.action.splitEditor",
-    "when": "editorTextFocus"
-  },
-  {
-    "key": "cmd+d",
-    "command": "workbench.action.terminal.split",
-    "when": "terminalFocus"
-  },
-  {
-    "key": "cmd+shift+d",
-    "command": "workbench.action.splitEditorOrthogonal",
-    "when": "!terminalFocus"
-  },
-  {
-    "key": "cmd+shift+d",
-    "command": "-workbench.view.debug"
-  },
-  // --- General & Quick Open ---
+
+  // --- Search ---
   {
     "key": "cmd+shift+R",
     "command": "workbench.action.quickTextSearch",
   },
-  // --- Editor Actions: Movement & Selection ---
-  {
-    "key": "shift+j",
-    "command": "editor.action.moveLinesDownAction",
-    "when": "vim.mode == 'Normal' && editorTextFocus",
-  },
-  {
-    "key": "shift+k",
-    "command": "editor.action.moveLinesUpAction",
-    "when": "vim.mode == 'Normal' && editorTextFocus",
-  },
-  {
-    "key": "ctrl+n",
-    "command": "editor.action.addSelectionToNextFindMatch",
-    "when": "(!vim.mode || vim.mode == 'Normal' || vim.mode == 'Visual') && (editorTextFocus || !inputFocus)",
-  },
-  // --- File Explorer Specific Bindings ---
-  {
-    "key": "r",
-    "command": "renameFile",
-    "when": "filesExplorerFocus && foldersViewVisible && !explorerResourceIsRoot && !explorerResourceReadonly && !inputFocus",
-  },
-  {
-    "key": "c",
-    "command": "filesExplorer.copy",
-    "when": "filesExplorerFocus && foldersViewVisible && !explorerResourceIsRoot && !explorerResourceReadonly && !inputFocus",
-  },
-  {
-    "key": "p",
-    "command": "filesExplorer.paste",
-    "when": "filesExplorerFocus && foldersViewVisible && !explorerResourceIsRoot && !explorerResourceReadonly && !inputFocus",
-  },
-  {
-    "key": "x",
-    "command": "filesExplorer.cut",
-    "when": "filesExplorerFocus && foldersViewVisible && !explorerResourceIsRoot && !explorerResourceReadonly && !inputFocus",
-  },
-  {
-    "key": "d",
-    "command": "deleteFile",
-    "when": "filesExplorerFocus && foldersViewVisible && !explorerResourceIsRoot && !explorerResourceReadonly && !inputFocus",
-  },
-  {
-    "key": "a",
-    "command": "explorer.newFile",
-    "when": "filesExplorerFocus && foldersViewVisible && !explorerResourceIsRoot && !explorerResourceReadonly && !inputFocus",
-  },
-  {
-    "key": "shift+a",
-    "command": "explorer.newFolder",
-    "when": "filesExplorerFocus && foldersViewVisible && !explorerResourceIsRoot && !explorerResourceReadonly && !inputFocus",
-  },
-  {
-    "key": "s",
-    "command": "explorer.openToSide",
-    "when": "filesExplorerFocus && foldersViewVisible && !explorerResourceIsRoot && !explorerResourceReadonly && !inputFocus",
-  },
-  {
-    "key": "shift+s",
-    "command": "runCommands",
-    "when": "filesExplorerFocus && foldersViewVisible && !explorerResourceIsRoot && !explorerResourceReadonly && !inputFocus",
-    "comment": "[Explorer] Split down, open file, close others",
-    "args": {
-      "commands": [
-        "workbench.action.splitEditorDown",
-        "explorer.openAndPassFocus",
-        "workbench.action.closeOtherEditors"
-      ]
-    }
-  },
+
+  // --- File Explorer (Neo-tree conventions) ---
+  // Open, expand, and find
   {
     "key": "enter",
     "command": "explorer.openAndPassFocus",
@@ -206,5 +110,68 @@
     "key": "/",
     "command": "list.find",
     "when": "filesExplorerFocus && foldersViewVisible && !inputFocus"
+  },
+
+  // Create, rename, and delete
+  {
+    "key": "a",
+    "command": "explorer.newFile",
+    "when": "filesExplorerFocus && foldersViewVisible && !explorerResourceReadonly && !inputFocus",
+  },
+  {
+    "key": "shift+a",
+    "command": "explorer.newFolder",
+    "when": "filesExplorerFocus && foldersViewVisible && !explorerResourceReadonly && !inputFocus",
+  },
+  {
+    "key": "r",
+    "command": "renameFile",
+    "when": "filesExplorerFocus && foldersViewVisible && !explorerResourceIsRoot && !explorerResourceReadonly && !inputFocus",
+  },
+  {
+    "key": "d",
+    "command": "deleteFile",
+    "when": "filesExplorerFocus && foldersViewVisible && !explorerResourceIsRoot && !explorerResourceReadonly && !inputFocus",
+  },
+
+  // Copy, cut, and paste
+  {
+    "key": "y",
+    "command": "filesExplorer.copy",
+    "when": "filesExplorerFocus && foldersViewVisible && !explorerResourceIsRoot && !inputFocus",
+  },
+  {
+    "key": "x",
+    "command": "filesExplorer.cut",
+    "when": "filesExplorerFocus && foldersViewVisible && !explorerResourceIsRoot && !explorerResourceReadonly && !inputFocus",
+  },
+  {
+    "key": "p",
+    "command": "filesExplorer.paste",
+    "when": "filesExplorerFocus && foldersViewVisible && !explorerResourceReadonly && !inputFocus",
+  },
+
+  // Open in split: s = right, S = below
+  {
+    "key": "s",
+    "command": "runCommands",
+    "when": "filesExplorerFocus && foldersViewVisible && !explorerResourceIsFolder && !inputFocus",
+    "args": {
+      "commands": [
+        "workbench.action.newGroupRight",
+        "explorer.openAndPassFocus"
+      ]
+    }
+  },
+  {
+    "key": "shift+s",
+    "command": "runCommands",
+    "when": "filesExplorerFocus && foldersViewVisible && !explorerResourceIsFolder && !inputFocus",
+    "args": {
+      "commands": [
+        "workbench.action.newGroupBelow",
+        "explorer.openAndPassFocus"
+      ]
+    }
   }
 ]
