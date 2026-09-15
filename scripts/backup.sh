@@ -26,6 +26,14 @@ BACKUP_DIRS=(
   ".ganglia"
   ".claude"
   ".config"
+  ".vscode"
+)
+
+# Array of individual files to back up from the home directory.
+BACKUP_FILES=(
+  ".zshrc"
+  ".zprofile"
+  ".gitconfig"
 )
 
 # Copy all directories to the destination using rsync
@@ -44,4 +52,9 @@ for dir in "${BACKUP_DIRS[@]}"; do
     --exclude=".DS_Store" \
     --exclude="ios/" \
     "/Users/$USER/$dir" "$BACKUP_PATH";
+done
+
+# Copy individual files to the destination root.
+for file in "${BACKUP_FILES[@]}"; do
+  rsync -avL "/Users/$USER/$file" "$BACKUP_PATH";
 done
