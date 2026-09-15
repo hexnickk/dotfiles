@@ -1,6 +1,6 @@
 ---
 name: seo-copywriter
-description: SEO-optimized copywriting for web content. Use when writing or improving landing pages, blog posts, product descriptions, meta tags, or any web copy. Includes text analysis script for keyword density, readability, power words, and SEO metrics. Trigger on requests for "SEO copy", "web content", "landing page copy", "meta description", or when analyzing existing copy for SEO.
+description: 'SEO-optimized copywriting for web content. Use when writing or improving landing pages, blog posts, product descriptions, meta tags, or any web copy. Includes text analysis script for keyword density, readability, power words, and SEO metrics. Trigger on requests for "SEO copy", "web content", "landing page copy", "meta description", or when analyzing existing copy for SEO.'
 ---
 
 # SEO Copywriter
