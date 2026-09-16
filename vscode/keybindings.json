@@ -1,61 +1,67 @@
 [
   // --- Panes ---
-  // Press Ctrl+B, release it, then the action key.
-  // Focus
+  // Press Cmd+K, release it, then the action key.
+  // Reserve Cmd+K for chords in the terminal; leave Ctrl+B available to tmux.
   {
-    "key": "ctrl+b left",
+    "key": "cmd+k",
+    "command": "-workbench.action.terminal.clear"
+  },
+
+  // Focus (overrides VS Code's Cmd+K, arrow group-move shortcuts)
+  {
+    "key": "cmd+k left",
     "command": "workbench.action.navigateLeft",
   },
   {
-    "key": "ctrl+b down",
+    "key": "cmd+k down",
     "command": "workbench.action.navigateDown",
   },
   {
-    "key": "ctrl+b right",
+    "key": "cmd+k right",
     "command": "workbench.action.navigateRight",
   },
   {
-    "key": "ctrl+b up",
+    "key": "cmd+k up",
     "command": "workbench.action.navigateUp",
   },
 
   // Move editor
   {
-    "key": "ctrl+b shift+left",
+    "key": "cmd+k shift+left",
     "command": "workbench.action.moveEditorToLeftGroup",
     "when": "(!vim.mode || vim.mode == 'Normal') && editorTextFocus"
   },
   {
-    "key": "ctrl+b shift+down",
+    "key": "cmd+k shift+down",
     "command": "workbench.action.moveEditorToBelowGroup",
     "when": "(!vim.mode || vim.mode == 'Normal') && editorTextFocus"
   },
   {
-    "key": "ctrl+b shift+right",
+    "key": "cmd+k shift+right",
     "command": "workbench.action.moveEditorToRightGroup",
     "when": "(!vim.mode || vim.mode == 'Normal') && editorTextFocus"
   },
   {
-    "key": "ctrl+b shift+up",
+    "key": "cmd+k shift+up",
     "command": "workbench.action.moveEditorToAboveGroup",
     "when": "(!vim.mode || vim.mode == 'Normal') && editorTextFocus"
   },
 
   // Split
   {
-    "key": "ctrl+b -",
+    "key": "cmd+k -",
     "command": "workbench.action.splitEditorDown",
     "when": "!terminalFocus"
   },
   // Shift+backslash types | on a US keyboard.
   {
-    "key": "ctrl+b shift+\\",
+    "key": "cmd+k shift+\\",
     "command": "workbench.action.splitEditorRight",
     "when": "!terminalFocus"
   },
   // Panel terminal splits follow VS Code's panel orientation.
   {
-    "key": "ctrl+b shift+\\",
+    "key": "cmd+k shift+\\",
     "command": "workbench.action.terminal.split",
     "when": "terminalFocus"
   },
@@ -173,5 +179,11 @@
         "explorer.openAndPassFocus"
       ]
     }
-  }
+  },
+  {
+     "key": "shift+enter",
+     "command": "workbench.action.terminal.sendSequence",
+     "args": { "text": "\u001b[13;2u" },
+     "when": "terminalFocus"
+   }
 ]
