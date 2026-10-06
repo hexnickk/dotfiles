@@ -1,0 +1,4 @@
+interface:
+  display_name: "Anki Collection"
+  short_description: "Inspect, format and add Anki vocabulary cards"
+  default_prompt: "Use $anki-collection to check these words and add illustrated cards to my Anki collection."
