@@ -19,6 +19,7 @@
     "window.commandCenter": false,
     "window.density.editorTabHeight": "compact",
     "terminal.integrated.macOptionIsMeta": true,
+    "terminal.integrated.scrollback": 100000,
     "files.trimTrailingWhitespace": true,
     "files.trimFinalNewlines": true,
     "files.insertFinalNewline": true,
@@ -26,9 +27,17 @@
     "explorer.confirmDelete": false,
     "explorer.compactFolders": false,
     "explorer.confirmPasteNative": false,
+    "remote.autoForwardPortsSource": "hybrid",
+    "remote.localPortHost": "allInterfaces",
+    "workbench.editor.closeEmptyGroups": false,
+    "workbench.editor.showTabs": "none",
+    "workbench.editor.enablePreview": false,
+    "workbench.editor.limit.enabled": true,
+    "workbench.editor.limit.perEditorGroup": true,
+    "workbench.editor.limit.value": 1,
+    "workbench.browser.openLocalhostLinks": false,
     "workbench.activityBar.location": "top",
     "workbench.editorAssociations": {
-        "*.copilotmd": "vscode.markdown.preview.editor",
         "*.pdf": "default"
     },
     "workbench.tips.enabled": false,
@@ -38,18 +47,13 @@
     "typescript.updateImportsOnFileMove.enabled": "always",
     "javascript.updateImportsOnFileMove.enabled": "always",
     "javascript.preferences.importModuleSpecifierEnding": "js",
+    "js/ts.validate.enabled": false,
     // Other
     "chat.editing.confirmEditRequestRetry": false,
+    "chat.disableAIFeatures": true,
     "diffEditor.diffAlgorithm": "advanced",
     "diffEditor.experimental.showMoves": true,
     // "diffEditor.renderSideBySide": false,
-    "remote.autoForwardPortsSource": "hybrid",
-    "github.copilot.nextEditSuggestions.enabled": true,
-    "github.copilot.chat.commitMessageGeneration.instructions": [
-        {
-            "text": "Use conventional commit message format."
-        }
-    ],
     // Vim
     "vim.normalModeKeyBindingsNonRecursive": [
         {
@@ -62,22 +66,4 @@
             ]
         }
     ],
-    "github.copilot.enable": {
-        "*": true,
-        "plaintext": false,
-        "markdown": false,
-        "scminput": false
-    },
-    "remote.localPortHost": "allInterfaces",
-    "python.analysis.typeCheckingMode": "standard",
-    "claudeCode.preferredLocation": "panel",
-    "workbench.editor.closeEmptyGroups": false,
-    "workbench.editor.showTabs": "none",
-    "workbench.editor.enablePreview": false,
-    "workbench.editor.limit.enabled": true,
-    "workbench.editor.limit.perEditorGroup": true,
-    "workbench.editor.limit.value": 1,
-    "terminal.integrated.scrollback": 100000,
-    "js/ts.validate.enabled": false,
-    "chat.disableAIFeatures": true,
 }
